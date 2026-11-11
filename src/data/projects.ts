@@ -76,8 +76,8 @@ export const builtProjects: BuiltProject[] = [
     ],
     stack: ["FastAPI", "faster-whisper", "Deepgram", "Gemini 2.5 Flash", "React", "Render + Vercel"],
     video: {
-      loop: "/projects/callevals/loop.mp4",
-      loopPoster: "/projects/callevals/poster.jpg",
+      loop: "/projects/callevals/thumb.mp4",
+      loopPoster: "/projects/callevals/thumb.jpg",
       film: "/projects/callevals/film.mp4",
       filmLength: "0:24",
       scrub: "/projects/callevals/scrub.mp4",
@@ -176,9 +176,8 @@ export const builtProjects: BuiltProject[] = [
     ],
     stack: ["FastAPI", "Pinecone", "Gemini embeddings", "Supabase", "Tavily", "Groq", "Next.js"],
     video: {
-      loop: "/projects/ai-med-pedia/loop.mp4",
-      loopWebm: "/projects/ai-med-pedia/loop.webm",
-      loopPoster: "/projects/ai-med-pedia/loop.jpg",
+      loop: "/projects/ai-med-pedia/thumb.mp4",
+      loopPoster: "/projects/ai-med-pedia/thumb.jpg",
       film: "/projects/ai-med-pedia/film.mp4",
       filmLength: "0:21",
       scrub: "/projects/ai-med-pedia/scrub.mp4",

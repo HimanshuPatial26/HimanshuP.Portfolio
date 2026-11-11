@@ -72,11 +72,13 @@ export default function LoopVideo({ src, webm, poster, className = "", style, ac
     };
   }, [from]);
 
-  // a preview became (in)active
+  // a preview became (in)active: a newly chosen one starts its little story from the top
   useEffect(() => {
+    const v = ref.current as (HTMLVideoElement & { __sync?: () => void }) | null;
+    if (v && active && !want.current && v.readyState >= 1) v.currentTime = from;
     want.current = active;
-    (ref.current as (HTMLVideoElement & { __sync?: () => void }) | null)?.__sync?.();
-  }, [active]);
+    v?.__sync?.();
+  }, [active, from]);
 
   return (
     <video

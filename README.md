@@ -54,7 +54,7 @@ Each built project has four kinds of video in `public/projects/<slug>/`:
 
 - `film.mp4`: the launch film with sound, for "Play the film".
 - `scrub.mp4` (and `log.mp4` for CallEvals): no audio, with a keyframe every 6 frames, so scrolling can seek through it smoothly.
-- `loop.mp4`: the short muted clip on the Projects list.
+- `thumb.mp4` / `thumb.jpg`: the muted 16:10 thumbnail loop on the Projects list (and the next-project card).
 - Posters (`*.jpg`).
 
 The chapter timings (`at: [start, end]` in seconds) live in `src/data/projects.ts`. Encode a new scrub file with:
