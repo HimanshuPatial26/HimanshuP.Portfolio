@@ -16,7 +16,7 @@ function Play({ className = "" }: { className?: string }) {
 }
 
 /** The film with sound, in a modal player. Opened by a click, so the browser lets it play aloud. */
-function FilmDialog({ open, onClose, p }: { open: boolean; onClose: () => void; p: BuiltProject }) {
+export function FilmDialog({ open, onClose, p }: { open: boolean; onClose: () => void; p: BuiltProject }) {
   const ref = useRef<HTMLDialogElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
 

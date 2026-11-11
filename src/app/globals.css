@@ -830,17 +830,38 @@ html[data-opening] [data-chrome] {
   }
 }
 
-/* the academic preview's 96% ring draws itself */
-.proj-ring {
-  animation: proj-ring 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+/* the Projects stage: the room's glow eases from one project's colour to the next */
+@property --stage-glow {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #f2953f;
 }
-@keyframes proj-ring {
+.stage-room {
+  background:
+    radial-gradient(60% 70% at 72% 52%, color-mix(in srgb, var(--stage-glow) 22%, transparent), transparent 70%),
+    radial-gradient(90% 50% at 15% 110%, color-mix(in srgb, var(--stage-glow) 12%, transparent), transparent 70%);
+  transition: --stage-glow 1s ease;
+}
+
+/* the Projects stage: each project's big outlined number rises into place */
+.stage-num {
+  animation: stage-num 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes stage-num {
   from {
-    stroke-dasharray: 0 var(--c);
+    opacity: 0;
+    transform: translateY(14%);
   }
 }
-.proj-details > summary::-webkit-details-marker {
-  display: none;
+/* the stage's words swap in: a fade and a short rise (no blur: it's cheaper while pinned) */
+.stage-in {
+  animation: stage-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
