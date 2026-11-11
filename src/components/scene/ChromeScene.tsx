@@ -942,12 +942,17 @@ export default function ChromeScene() {
     const hit = new THREE.Vector3();
     const inv = new THREE.Matrix4();
 
+    // frames skipped while nothing 3D is on screen (see the end of frame()); any resize clears
+    // the canvas, so it draws again
+    let rested = 0;
+    let restSig = -1;
     const onResize = () => {
       narrow = window.innerWidth < 768;
       camera.aspect = window.innerWidth / window.innerHeight;
       renderer.setSize(window.innerWidth, window.innerHeight);
       resizePost();
       measure();
+      rested = 0;
     };
     window.addEventListener("resize", onResize);
     const ro = new ResizeObserver(measure);
@@ -1175,6 +1180,15 @@ export default function ChromeScene() {
       film.chapterNo = changing ? sb.chapterNo : "";
       film.grade = cur.grade;
       film.formed = changing ? "" : sa.shape;
+
+      // nothing 3D on screen (data-shape="none": Projects, Contact, the project pages): once the
+      // object has shrunk away and the colour has settled, the picture can't change, so stop
+      // drawing and leave the GPU to the films and the cloth
+      const sig = bg.getHex();
+      const settled = vanish >= 0.999 && !changing && scatter < 0.002 && Math.abs(cur.grade - tGrade) < 0.004 && sig === restSig;
+      restSig = sig;
+      rested = settled ? rested + 1 : 0;
+      if (rested > 4) return;
 
       const glow = post && quality.bloom ? pal.bloom : 0;
       if (post && glow > 0) {

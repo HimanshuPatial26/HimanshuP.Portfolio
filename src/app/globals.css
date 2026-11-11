@@ -745,3 +745,108 @@ html[data-opening] [data-chrome] {
   height: 2.25rem !important;
   max-width: none !important;
 }
+
+/* ------------------------------------------------------------------ Projects */
+/* a project page wears its product's colour: --p-acc on the film (always dark), --acc for text
+   on the page (a deeper variant on the light theme so it stays legible on grey) */
+.project-page {
+  --acc: var(--p-acc);
+}
+:root[data-theme="light"] .project-page {
+  --acc: var(--p-acc-l);
+}
+/* the room: an opaque layer over the 3D scene (which rests on these pages) with the product's glow */
+.project-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--bg);
+  transition: background-color 0.5s ease;
+}
+.project-ambient > span {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.9s ease;
+}
+.project-ambient .amb-base {
+  background:
+    radial-gradient(110% 60% at 50% 115%, rgb(var(--p-rgb) / 0.2), transparent 70%),
+    radial-gradient(55% 45% at 88% 4%, rgb(var(--p-rgb) / 0.07), transparent 70%);
+}
+.project-ambient .amb-tone {
+  opacity: 0;
+}
+.amb-urgent {
+  background: radial-gradient(80% 70% at 75% 45%, rgb(255 107 122 / 0.16), transparent 65%);
+}
+.amb-caution {
+  background: radial-gradient(80% 70% at 75% 45%, rgb(232 163 61 / 0.15), transparent 65%);
+}
+.amb-steady {
+  background: radial-gradient(80% 70% at 75% 45%, rgb(63 191 164 / 0.14), transparent 65%);
+}
+/* Med-pedia's safety chapter: the chosen tone lights the room */
+.project-page[data-active-chapter="safety"][data-tone="urgent"] .amb-urgent,
+.project-page[data-active-chapter="safety"][data-tone="caution"] .amb-caution,
+.project-page[data-active-chapter="safety"][data-tone="steady"] .amb-steady {
+  opacity: 1;
+}
+
+/* entering a project: the preview clip grows into the page's film (React <ViewTransition share="morph">) */
+::view-transition-group(.morph) {
+  animation-duration: 650ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-image-pair(.morph) {
+  animation-name: morph-blur;
+}
+@keyframes morph-blur {
+  35% {
+    filter: blur(4px) brightness(1.08);
+  }
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 420ms;
+}
+
+/* the film player */
+.film-dialog[open] {
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100svh;
+  animation: film-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.film-dialog::backdrop {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+@keyframes film-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* the academic preview's 96% ring draws itself */
+.proj-ring {
+  animation: proj-ring 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes proj-ring {
+  from {
+    stroke-dasharray: 0 var(--c);
+  }
+}
+.proj-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

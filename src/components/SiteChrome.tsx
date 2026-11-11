@@ -15,6 +15,7 @@ const menuItems = [
   { label: "Home", ariaLabel: "Back to the top", link: "/#top" },
   { label: "About", ariaLabel: "About Himanshu", link: "/#about" },
   { label: "Work", ariaLabel: "Selected work", link: "/#work" },
+  { label: "Projects", ariaLabel: "Projects", link: "/#projects" },
   { label: "Journey", ariaLabel: "Career journey", link: "/#journey" },
   { label: "Contact", ariaLabel: "Contact", link: "/#contact" },
 ];

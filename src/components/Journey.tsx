@@ -6,7 +6,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import MagneticField from "@/components/MagneticField";
 import SectionHeading from "@/components/SectionHeading";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
-import { education, experience, projects, skills } from "@/data/resume";
+import { builtProjects } from "@/data/projects";
+import { education, experience, skills } from "@/data/resume";
 import { useTheme } from "@/hooks/useTheme";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -21,6 +22,7 @@ type Panel = {
   body?: string;
   tags?: string[];
   wide?: boolean;
+  link?: { href: string; label: string };
 };
 
 const support = experience[1];
@@ -37,10 +39,19 @@ const panels: Panel[] = [
     title: mgb.degree,
     org: `${mgb.school} · ${mgb.place}`,
     accent: "ai",
-    body: `${mgb.detail}. ${projects[0].name} (${projects[0].period}): ${projects[0].summary}`,
-    tags: projects[0].tools,
+    body: `${mgb.detail}. Course projects include a FinTech adoption study across India and Dubai, and a strategy brief for Rebel Foods in the UAE.`,
+    link: { href: "/#projects", label: "See the projects" },
   },
-  { mark: "Now", period: projects[1].period, title: projects[1].name, org: projects[1].org, accent: "growth", body: projects[1].summary, tags: projects[1].tools },
+  {
+    mark: "Now",
+    period: "2026",
+    title: "Building my own AI products",
+    org: builtProjects.map((p) => p.name).join(" · "),
+    accent: "growth",
+    body: "Alongside the Master's: CallEvals, sales-call reviews for Dubai brokerages, and AI Med-pedia, a medical information assistant.",
+    tags: ["LLM products", "RAG", "Evals"],
+    link: { href: "/#projects", label: "See the projects" },
+  },
 ];
 
 function PanelCard({ p }: { p: Panel }) {
@@ -72,6 +83,11 @@ function PanelCard({ p }: { p: Panel }) {
         </ul>
       )}
       {p.body && <p className="mt-6 text-sm leading-relaxed text-muted sm:text-[15px]">{p.body}</p>}
+      {p.link && (
+        <a href={p.link.href} className="cursor-target mt-4 inline-flex items-center gap-2 font-mono text-[11px] tracking-widest text-text uppercase hover:text-ai">
+          {p.link.label} <span aria-hidden="true">→</span>
+        </a>
+      )}
       {p.tags && (
         <ul className="mt-auto flex flex-wrap gap-2 pt-6">
           {p.tags.map((t) => (
@@ -237,12 +253,12 @@ export default function Journey() {
       data-pose="back-right"
       data-grade="ai"
       data-chapter="Journey"
-      data-chapter-no="04"
+      data-chapter-no="05"
       className="relative"
     >
       <div className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
         <SectionHeading
-          index="04"
+          index="05"
           eyebrow="Journey"
           title="Support desk to strategy."
           intro="Three years in customer support, two-plus as a PM, and now a Master's in Global Business. Keep scrolling and the timeline slides sideways."

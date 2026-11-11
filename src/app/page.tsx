@@ -3,6 +3,7 @@ import Marquee from "@/components/Marquee";
 import About from "@/components/About";
 import Metrics from "@/components/Metrics";
 import Work from "@/components/Work";
+import Projects from "@/components/Projects";
 import Journey from "@/components/Journey";
 import Contact from "@/components/Contact";
 
@@ -16,6 +17,7 @@ export default function Home() {
       <About />
       <Metrics />
       <Work />
+      <Projects />
       <Journey />
       <Contact />
     </>

@@ -31,7 +31,7 @@ export default function Contact() {
 
   return (
     // data-shape="none": the 3D element melts away here and the bead cloth takes the stage
-    <section id="contact" data-shape="none" data-chapter="Contact" data-chapter-no="05" className="relative isolate overflow-hidden border-t border-line">
+    <section id="contact" data-shape="none" data-chapter="Contact" data-chapter-no="06" className="relative isolate overflow-hidden border-t border-line">
       <div className="absolute inset-0 -z-10" aria-hidden="true">
         <BeadCloth
           background="transparent"
@@ -46,7 +46,7 @@ export default function Contact() {
       </div>
 
       <div className="pointer-events-none mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-center px-4 py-28 sm:px-6">
-        <p className="mb-6 font-mono text-xs tracking-widest text-faint uppercase">05 / Contact</p>
+        <p className="mb-6 font-mono text-xs tracking-widest text-faint uppercase">06 / Contact</p>
         <h2 className="max-w-5xl text-[clamp(2.6rem,8vw,7rem)] leading-[0.9]">
           Hiring for an{" "}
           <Scribble kind="line" className="text-ai">

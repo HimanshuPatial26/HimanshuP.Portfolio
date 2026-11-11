@@ -24,11 +24,14 @@ npm run lint    # eslint
 | Path | What it holds |
 | --- | --- |
 | `src/data/resume.ts` | All the content: profile, metrics, case studies, journey |
-| `src/app` | Pages (`/` and `/work/[slug]`), share image, sitemap, global styles |
-| `src/components` | Sections (Hero, About, Metrics, Work, Journey, Contact) and UI pieces |
+| `src/data/projects.ts` | Projects: the two built products (chapters, film timings, links) and the two Master's projects |
+| `src/app` | Pages (`/`, `/work/[slug]` and `/projects/[slug]`), share image, sitemap, global styles |
+| `src/components` | Sections (Hero, About, Metrics, Work, Projects, Journey, Contact) and UI pieces |
+| `src/components/projects` | The project pages: film hero, scroll-scrubbed chapters, interactive bits |
 | `src/components/scene` | The 3D scene shared by every page (`ChromeScene.tsx`) |
 | `blender/` | Blender scripts that build the 3D shapes and the offline renders |
 | `public/` | The 3D model, rendered tiles and poster, fonts, Draco decoder |
+| `public/projects/<slug>/` | Each built project's films, card loop and posters |
 
 ## Resume PDF
 
@@ -43,6 +46,21 @@ The shapes and renders are made with Blender (5.x), run headless from the projec
 blender --background --factory-startup --python blender/build_chrome_shapes.py -- public/models/chrome-shapes.glb
 blender --background --factory-startup --python blender/render_glass_orb.py -- public/posters/orb.png
 blender --background --factory-startup --python blender/render_case_tiles.py -- public/models/chrome-shapes.glb public/tiles
+```
+
+## Project films
+
+Each built project has four kinds of video in `public/projects/<slug>/`:
+
+- `film.mp4`: the launch film with sound, for "Play the film".
+- `scrub.mp4` (and `log.mp4` for CallEvals): no audio, with a keyframe every 6 frames, so scrolling can seek through it smoothly.
+- `loop.mp4`: the short muted clip on the Projects list.
+- Posters (`*.jpg`).
+
+The chapter timings (`at: [start, end]` in seconds) live in `src/data/projects.ts`. Encode a new scrub file with:
+
+```bash
+ffmpeg -i source.mp4 -an -vf scale=1600:-2 -c:v libx264 -preset slow -crf 26 -g 6 -keyint_min 6 -sc_threshold 0 -pix_fmt yuv420p -movflags +faststart scrub.mp4
 ```
 
 ## Deployment

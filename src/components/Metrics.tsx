@@ -164,7 +164,8 @@ export default function Metrics() {
             <div className="relative mt-[min(1.75rem,3svh)]">
               {/* progress through the four */}
               <span aria-hidden="true" className="absolute top-0 bottom-0 -left-5 hidden w-px bg-line md:block">
-                <span ref={railRef} className="block h-full origin-top scale-y-0 bg-text" />
+                {/* inline transform only: Tailwind's scale-y-0 sets `scale`, which would multiply it to zero */}
+                <span ref={railRef} className="block h-full origin-top bg-text" style={{ transform: "scaleY(0)" }} />
               </span>
 
               <ol aria-label="Results" onKeyDown={onKeys}>
