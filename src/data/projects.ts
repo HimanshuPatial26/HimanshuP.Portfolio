@@ -242,19 +242,31 @@ export const builtProjects: BuiltProject[] = [
 ];
 
 export type AcademicProject = {
-  id: string;
+  /** also the URL slug: /projects/<id> */
+  id: "fintech-adoption" | "behrouz-biryani";
   kind: "Research" | "Strategy";
   name: string;
   line: string;
   period: string;
   ongoing: boolean;
-  summary: string;
+  /** who did it: solo research or a team project */
+  credit: string;
+  tagline: string;
   tools: string[];
   facts: { label: string; value: string; key?: boolean }[];
+  /** the page's own colour (light-theme variant for contrast on grey) */
+  accent: { dark: string; light: string; rgb: string };
+  /** preview image on the Projects list (none: a drawn figure stands in) */
+  preview?: string;
 };
 
-const [fintech, rebel] = resumeProjects;
+const [fintech] = resumeProjects;
 
+/*
+ * Facts come from the two final reports: the International Business Research report
+ * (FinTech, solo) and Team 1's Global Industry Project report for Rebel Foods (Behrouz).
+ * Figures the Behrouz kitchen operator gave verbally are deliberately left out.
+ */
 export const academicProjects: AcademicProject[] = [
   {
     id: "fintech-adoption",
@@ -263,31 +275,38 @@ export const academicProjects: AcademicProject[] = [
     line: "India × Dubai · PLS-SEM study",
     period: fintech.period,
     ongoing: false,
-    summary: fintech.summary,
-    tools: fintech.tools,
+    credit: "Individual research · International Business Research",
+    tagline: "Brand trust drives FinTech adoption in both markets, but through different doors: usefulness in India, lower risk in Dubai.",
+    tools: ["SmartPLS 4", "PLS-SEM", "Multi-group analysis", "Survey design"],
     facts: [
-      { label: "Sample", value: "71 respondents across two markets" },
-      { label: "Method", value: "PLS-SEM in SmartPLS 4" },
-      { label: "Result", value: "96% of the variance in adoption intention explained", key: true },
-      { label: "Output", value: "A go-to-market approach for each market" },
+      { label: "Sample", value: "71 clean responses: 36 India, 35 Dubai" },
+      { label: "Method", value: "PLS-SEM in SmartPLS 4, with multi-group analysis" },
+      { label: "Result", value: "96% of adoption intention explained in each market", key: true },
+      { label: "Finding", value: "Trust works through usefulness in India and through risk in Dubai" },
     ],
+    accent: { dark: "#7aa2ff", light: "#2f55c8", rgb: "122 162 255" },
   },
   {
-    id: "rebel-foods",
+    id: "behrouz-biryani",
     kind: "Strategy",
-    name: "Rebel Foods · Behrouz Biryani",
-    line: "UAE food delivery · Global Industry Project",
-    period: rebel.period,
-    ongoing: true,
-    summary: rebel.summary,
-    tools: rebel.tools,
+    name: "Behrouz Biryani, UAE",
+    line: "Rebel Foods · Global Industry Project",
+    period: "2026",
+    ongoing: false,
+    credit: "Team project (3) · Global Industry Project for Rebel Foods",
+    tagline: "Why the UAE's highest-rated biryani under-delivers where the revenue is, and a capital-light plan to fix it.",
+    tools: ["Survey (n = 136)", "Regression & mediation", "PESTLE", "CAGE", "Porter's Five Forces", "Blue Ocean"],
     facts: [
-      { label: "Brief", value: "Benchmark the brand against key UAE rivals" },
-      { label: "Lenses", value: "PESTLE · CAGE · Porter's Five Forces" },
-      { label: "Output", value: "Changes to positioning, pricing and channel mix" },
-      { label: "Hook", value: "A category insight that challenged the brand's core assumption", key: true },
+      { label: "Evidence", value: "Survey of 136 UAE delivery users, a kitchen visit, a platform audit" },
+      { label: "Dropped", value: "Our own hypothesis: reposition around premium occasions" },
+      { label: "Finding", value: "Quality falls on group orders, 0.78 points behind rivals", key: true },
+      { label: "Plan", value: "Fix consistency, then grow: five capital-light moves" },
     ],
+    accent: { dark: "#d9a84e", light: "#8a5a12", rgb: "217 168 78" },
+    preview: "/projects/behrouz-biryani/closed.jpg",
   },
 ];
+
+export const academicById = (id: string) => academicProjects.find((p) => p.id === id);
 
 export const projectBySlug = (slug: string) => builtProjects.find((p) => p.slug === slug);

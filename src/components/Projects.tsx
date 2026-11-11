@@ -8,8 +8,6 @@ import { academicProjects, builtProjects, type AcademicProject, type BuiltProjec
 
 type Filter = "all" | "built" | "academic";
 
-type Lenis = { scrollTo: (t: HTMLElement | string, o?: object) => void };
-const lenis = () => (window as unknown as { __lenis?: Lenis }).__lenis;
 
 /** Which layout is showing: the desktop preview or the phone cards (null until mounted). */
 function useDesktop() {
@@ -84,25 +82,11 @@ function AcademicFigure({ p }: { p: AcademicProject }) {
       </svg>
     );
   }
-  return (
-    <svg viewBox="0 0 400 250" className="absolute inset-0 size-full" aria-hidden="true">
-      {[
-        { x: 150, label: "PESTLE", on: false },
-        { x: 200, label: "CAGE", on: false },
-        { x: 250, label: "FIVE FORCES", on: true },
-      ].map((l) => (
-        <g key={l.label}>
-          <circle cx={l.x} cy="118" r="58" fill="none" stroke={l.on ? "var(--ai)" : "rgb(255 255 255 / .35)"} strokeWidth={l.on ? 1.6 : 1} />
-          <text x={l.x} y="200" textAnchor="middle" fill={l.on ? "#f4f4f4" : "#8a8a8a"} fontSize="8.5" letterSpacing="1.4" className="font-mono">
-            {l.label}
-          </text>
-        </g>
-      ))}
-      <text x="200" y="40" textAnchor="middle" fill="#8a8a8a" fontSize="8.5" letterSpacing="1.4" className="font-mono">
-        THREE LENSES · ONE BRAND
-      </text>
-    </svg>
-  );
+  // a rendered still (the Behrouz packaging concept)
+  return p.preview ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={p.preview} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
+  ) : null;
 }
 
 /** Built project row: a link into its page. Desktop shows the loop in the preview; phones get it inline. */
@@ -156,39 +140,34 @@ function BuiltRow({ p, i, on, onFocus, phone }: { p: BuiltProject; i: number; on
 }
 
 function AcademicRow({ p, i, on, onFocus }: { p: AcademicProject; i: number; on: boolean; onFocus: () => void }) {
-  const go = () => {
-    const el = document.getElementById(p.id);
-    if (!el) return;
-    const l = lenis();
-    if (l) l.scrollTo(el, { offset: -96, duration: 1.2 });
-    else el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
   return (
-    <li className="relative border-t border-line">
-      <span aria-hidden="true" className={`absolute -top-px left-0 h-px bg-ai transition-all duration-700 ${on ? "w-full" : "w-0"}`} />
-      <button
-        type="button"
-        onClick={go}
+    <li className="relative border-t border-line" style={{ "--acc": p.accent.dark } as CSSProperties}>
+      <span aria-hidden="true" className={`absolute -top-px left-0 h-px bg-[var(--acc)] transition-all duration-700 ${on ? "w-full" : "w-0"}`} />
+      <Link
+        href={`/projects/${p.id}`}
         onPointerEnter={onFocus}
         onFocus={onFocus}
         className="cursor-target group grid w-full grid-cols-[2.75rem_1fr_auto] items-center gap-3 py-4 text-left"
       >
-        <span className={`font-mono text-xs transition-colors ${on ? "text-ai" : "text-faint"}`}>{String(i + 1).padStart(2, "0")}</span>
+        <span className={`font-mono text-xs transition-colors ${on ? "text-[var(--acc)]" : "text-faint"}`}>{String(i + 1).padStart(2, "0")}</span>
         <span className="min-w-0">
           <span className={`block font-display text-[clamp(1.2rem,2vw,1.55rem)] leading-tight transition-colors duration-500 ${on ? "text-text" : "text-muted group-hover:text-text"}`}>
             {p.name}
           </span>
           <span className="mt-1 block text-[13px] text-faint">{p.line}</span>
         </span>
-        <span className={`${pill} border-line-strong text-muted`}>{p.kind}</span>
-      </button>
+        <span className="flex items-center gap-3">
+          <span className={`${pill} border-line-strong text-muted`}>{p.kind}</span>
+          <Arrow className={`hidden h-2.5 w-6 transition-transform duration-500 md:block ${on ? "translate-x-1 text-text" : "text-faint"}`} />
+        </span>
+      </Link>
     </li>
   );
 }
 
 function AcademicCard({ p }: { p: AcademicProject }) {
   return (
-    <article id={p.id} className="spin-border glass scroll-mt-28 flex flex-col rounded-3xl p-7 sm:p-9">
+    <article id={p.id} className="spin-border glass scroll-mt-28 flex flex-col rounded-3xl p-7 sm:p-9" style={{ "--acc": p.accent.dark } as CSSProperties}>
       <div className="flex items-center justify-between gap-3">
         <span className="font-mono text-[11px] tracking-widest text-faint uppercase">
           {p.kind}
@@ -198,28 +177,22 @@ function AcademicCard({ p }: { p: AcademicProject }) {
       </div>
       <h3 className="mt-6 text-[clamp(1.6rem,2.6vw,2.1rem)] leading-[1.02]">{p.name}</h3>
       <p className="mt-2 text-sm text-muted">{p.line}</p>
+      <p className="mt-1 font-mono text-[10.5px] tracking-[0.14em] text-faint uppercase">{p.credit}</p>
       <dl className="mt-6 border-b border-line text-[15px]">
         {p.facts.map((f) => (
           <div key={f.label} className="grid grid-cols-[5.5rem_1fr] items-baseline gap-3 border-t border-line py-3">
             <dt className="font-mono text-[10.5px] tracking-[0.16em] text-faint uppercase">{f.label}</dt>
-            <dd className={f.key ? "text-ai" : "text-text"}>{f.value}</dd>
+            <dd className={f.key ? "text-[var(--acc)]" : "text-text"}>{f.value}</dd>
           </div>
         ))}
       </dl>
-      <details className="proj-details group mt-5">
-        <summary className="cursor-target inline-flex cursor-pointer list-none items-center gap-2 font-mono text-[11px] tracking-widest text-text uppercase">
-          Read the summary
-          <Arrow className="h-2.5 w-6 transition-transform duration-300 group-open:rotate-90" />
-        </summary>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted">{p.summary}</p>
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {p.tools.map((t) => (
-            <li key={t} className="rounded-full bg-white/5 px-3 py-1 text-xs text-muted">
-              {t}
-            </li>
-          ))}
-        </ul>
-      </details>
+      <Link
+        href={`/projects/${p.id}`}
+        className="cursor-target group mt-auto inline-flex items-center gap-2 pt-6 font-mono text-[11px] tracking-widest text-text uppercase"
+      >
+        Open the project
+        <Arrow className="h-2.5 w-6 transition-transform duration-300 group-hover:translate-x-1" />
+      </Link>
     </article>
   );
 }
@@ -239,7 +212,7 @@ export default function Projects() {
   const showAcademic = filter !== "built";
   const activeBuilt = builtProjects.find((p) => p.slug === active);
   const activeAcademic = academicProjects.find((p) => p.id === active);
-  const accent = activeBuilt?.accent.rgb ?? "58 109 255";
+  const accent = activeBuilt?.accent.rgb ?? activeAcademic?.accent.rgb ?? "58 109 255";
 
   const onTilt = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== "mouse") return;
@@ -361,9 +334,9 @@ export default function Projects() {
             </div>
             <div className="mt-5 flex items-baseline justify-between gap-4">
               <p className="font-mono text-[11px] tracking-[0.16em] text-faint uppercase">
-                {activeBuilt ? "Click to open the project" : "Click to read it below"}
+                Click to open the project
               </p>
-              <p className="truncate text-sm text-muted">{activeBuilt?.tagline ?? activeAcademic?.line}</p>
+              <p className="truncate text-sm text-muted">{activeBuilt?.tagline ?? activeAcademic?.credit}</p>
             </div>
           </div>
         </div>
