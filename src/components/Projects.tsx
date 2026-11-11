@@ -213,6 +213,9 @@ export default function Projects() {
   const activeBuilt = builtProjects.find((p) => p.slug === active);
   const activeAcademic = academicProjects.find((p) => p.id === active);
   const accent = activeBuilt?.accent.rgb ?? activeAcademic?.accent.rgb ?? "58 109 255";
+  // the preview opens whichever project it is showing
+  const activeHref = activeBuilt ? `/projects/${activeBuilt.slug}` : activeAcademic ? `/projects/${activeAcademic.id}` : `/projects/${builtProjects[0].slug}`;
+  const activeName = activeBuilt?.name ?? activeAcademic?.short ?? builtProjects[0].name;
 
   const onTilt = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== "mouse") return;
@@ -298,8 +301,10 @@ export default function Projects() {
               onPointerLeave={() => setTilt({ x: 0, y: 0 })}
               className="[perspective:1200px]"
             >
-              <div
-                className="relative aspect-[16/10] overflow-hidden rounded-[22px] border border-white/15 bg-[#0b0b0b] transition-[transform,box-shadow] duration-500 ease-out"
+              <Link
+                href={activeHref}
+                aria-label={`Open ${activeName}`}
+                className="cursor-target group/preview relative block aspect-[16/10] overflow-hidden rounded-[22px] border border-white/15 bg-[#0b0b0b] transition-[transform,box-shadow] duration-500 ease-out"
                 style={{
                   transform: `rotateX(${(-tilt.y * 3).toFixed(2)}deg) rotateY(${(tilt.x * 4).toFixed(2)}deg)`,
                   boxShadow: `0 40px 90px rgb(0 0 0 / .55), 0 0 80px rgb(${accent} / .18), 0 0 0 6px rgb(${accent} / .05)`,
@@ -330,13 +335,20 @@ export default function Projects() {
                     Loop · muted
                   </span>
                 )}
-              </div>
+                <span className="absolute right-3 bottom-3 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-medium text-black opacity-0 shadow-lg transition-all duration-300 group-hover/preview:opacity-100 group-focus-visible/preview:opacity-100">
+                  Open project <Arrow className="h-2.5 w-5" />
+                </span>
+              </Link>
             </div>
-            <div className="mt-5 flex items-baseline justify-between gap-4">
-              <p className="font-mono text-[11px] tracking-[0.16em] text-faint uppercase">
-                Click to open the project
-              </p>
-              <p className="truncate text-sm text-muted">{activeBuilt?.tagline ?? activeAcademic?.credit}</p>
+            <div className="mt-5 flex items-center justify-between gap-4">
+              <Link
+                href={activeHref}
+                className="cursor-target group inline-flex shrink-0 items-center gap-2.5 rounded-full border border-line-strong py-2 pr-3 pl-4 text-sm font-medium transition-colors hover:border-text"
+              >
+                Open {activeName}
+                <Arrow className="h-2.5 w-6 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+              <p className="min-w-0 truncate text-sm text-muted">{activeBuilt?.tagline ?? activeAcademic?.credit}</p>
             </div>
           </div>
         </div>

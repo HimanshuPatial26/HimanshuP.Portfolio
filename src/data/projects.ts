@@ -246,6 +246,8 @@ export type AcademicProject = {
   id: "fintech-adoption" | "behrouz-biryani";
   kind: "Research" | "Strategy";
   name: string;
+  /** a short name for buttons */
+  short: string;
   line: string;
   period: string;
   ongoing: boolean;
@@ -272,6 +274,7 @@ export const academicProjects: AcademicProject[] = [
     id: "fintech-adoption",
     kind: "Research",
     name: "Drivers of FinTech app adoption",
+    short: "FinTech adoption",
     line: "India × Dubai · PLS-SEM study",
     period: fintech.period,
     ongoing: false,
@@ -290,6 +293,7 @@ export const academicProjects: AcademicProject[] = [
     id: "behrouz-biryani",
     kind: "Strategy",
     name: "Behrouz Biryani, UAE",
+    short: "Behrouz Biryani",
     line: "Rebel Foods · Global Industry Project",
     period: "2026",
     ongoing: false,
