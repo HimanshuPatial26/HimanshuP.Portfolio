@@ -2,13 +2,13 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
+import HpLogo from "@/components/HpLogo";
 import Toaster from "@/components/Toaster";
 import StaggeredMenu from "@/components/reactbits/StaggeredMenu";
 import { useFinePointer } from "@/hooks/useClientFlags";
-import { useTheme } from "@/hooks/useTheme";
 import { profile } from "@/data/resume";
 
-const TargetCursor = dynamic(() => import("@/components/reactbits/TargetCursor"), { ssr: false });
+const LiquidCursor = dynamic(() => import("@/components/LiquidCursor"), { ssr: false });
 
 // "/#…" so the links work from case-study pages too (RouteTransition handles both)
 const menuItems = [
@@ -59,7 +59,6 @@ function ScrollProgress() {
 
 export default function SiteChrome() {
   const finePointer = useFinePointer();
-  const { theme } = useTheme();
 
   return (
     <>
@@ -81,6 +80,13 @@ export default function SiteChrome() {
         displaySocials
         displayItemNumbering
         logoUrl="/hp-logo.svg"
+        logo={
+          // plain <a>: RouteTransition scrolls home (or goes home from another page)
+          // eslint-disable-next-line @next/next/no-html-link-for-pages
+          <a href="/#top" aria-label="Himanshu Patial, back to the top" className="cursor-target block">
+            <HpLogo className="sm-logo-img" />
+          </a>
+        }
         menuButtonColor="#f4f4f4"
         openMenuButtonColor="#000000"
         changeMenuColorOnOpen
@@ -88,17 +94,8 @@ export default function SiteChrome() {
         accentColor="#0146f9"
       />
 
-      {/* React Bits: Target Cursor, mouse and trackpad only */}
-      {finePointer && (
-        <TargetCursor
-          targetSelector=".cursor-target, a, button"
-          cursorColor={theme === "light" ? "#0a0a0a" : "#f4f4f4"}
-          spinDuration={2.4}
-          hideDefaultCursor
-          matchRadius
-          clickEffect
-        />
-      )}
+      {/* the liquid cursor, mouse and trackpad only */}
+      {finePointer && <LiquidCursor />}
     </>
   );
 }
