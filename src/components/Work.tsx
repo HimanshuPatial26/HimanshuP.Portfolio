@@ -159,12 +159,25 @@ export default function Work() {
                   }`}
                 >
                   {/* the case's object in chrome, rendered offline in Blender (blender/render_case_tiles.py):
-                      electric blue behind AI work, graphite behind growth work */}
+                      electric blue behind AI work, graphite behind growth work. A case with a live figure
+                      (concepts/anatomy, built into public/figures) shows it instead, on the page colour so its
+                      blue parts stand out. The frame ignores the pointer so the cursor and smooth scroll pass
+                      through; the figure loops on its own and pauses while it's off screen. */}
                   <div
-                    className={`relative mb-7 aspect-[16/10] overflow-hidden rounded-2xl ${ai ? "bg-blue" : "bg-[#232323]"}`}
+                    className={`relative mb-7 aspect-[16/10] overflow-hidden rounded-2xl ${cs.figure ? "bg-bg" : ai ? "bg-blue" : "bg-[#232323]"}`}
                     aria-hidden="true"
                   >
-                    <Image src={`/tiles/${cs.id}.png`} alt="" fill sizes="(min-width: 768px) 42vw, 92vw" className="object-contain" />
+                    {cs.figure ? (
+                      <iframe
+                        src={cs.figure}
+                        title={`${cs.name}, animated`}
+                        loading="lazy"
+                        tabIndex={-1}
+                        className="pointer-events-none absolute inset-0 h-full w-full border-0"
+                      />
+                    ) : (
+                      <Image src={`/tiles/${cs.id}.png`} alt="" fill sizes="(min-width: 768px) 42vw, 92vw" className="object-contain" />
+                    )}
                   </div>
 
                   {/* name + result shown inline on phones, where there's no pinned column */}

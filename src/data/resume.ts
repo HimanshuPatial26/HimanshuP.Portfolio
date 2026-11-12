@@ -88,6 +88,8 @@ export type CaseStudy = {
   built: string;
   result: string;
   resultIsMetric: boolean;
+  /** A live, looping figure in public/figures, shown on the card instead of the tile render. */
+  figure?: string;
 };
 
 export const caseStudies: CaseStudy[] = [
@@ -103,6 +105,7 @@ export const caseStudies: CaseStudy[] = [
       "Defined the requirements, user flows and a RAG strategy that grounds every answer in the course material.",
     result: "On-demand academic help, with answers tied to the course to curb hallucinations.",
     resultIsMetric: false,
+    figure: "/figures/doubt-mate.html",
   },
   {
     id: "call-analysis",
