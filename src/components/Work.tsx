@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import SectionHeading from "@/components/SectionHeading";
 import { Chip, Roll } from "@/components/Buttons";
+import DecodeText from "@/components/DecodeText";
 import { caseStudies, type Track } from "@/data/resume";
 
 const trackStyle: Record<Track, string> = {
@@ -128,21 +129,21 @@ export default function Work() {
                 ))}
               </ol>
 
-              <div key={c.id} className="min-w-0 flex-1" aria-live="polite">
-                <div className="swap-in flex flex-wrap items-center gap-3">
+              {/* The name stays mounted and decodes from the last case's name into this one, under a
+                  scan line; the rest swaps in. */}
+              <div className="relative min-w-0 flex-1" aria-live="polite">
+                <span key={`scan-${c.id}`} className="decode-scan" data-ai={isAI ? "" : undefined} aria-hidden="true" />
+                <div key={`tags-${c.id}`} className="swap-in flex flex-wrap items-center gap-3">
                   <span className="font-mono text-xs text-faint">{String(active + 1).padStart(2, "0")} / 06</span>
                   <Tags tracks={c.tracks} />
                 </div>
-                <h3
-                  className="swap-in mt-6 font-display text-[clamp(2.75rem,5.5vw,5.25rem)] leading-[0.9] tracking-[-0.03em] [font-variation-settings:'wght'_800,'wdth'_80,'opsz'_144]"
-                  style={{ animationDelay: "60ms" }}
-                >
-                  {c.name}
+                <h3 className="mt-6 font-display text-[clamp(2.75rem,5.5vw,5.25rem)] leading-[0.9] tracking-[-0.03em] [font-variation-settings:'wght'_800,'wdth'_80,'opsz'_144]">
+                  <DecodeText text={c.name} />
                 </h3>
-                <p className="swap-in mt-3 text-lg text-muted" style={{ animationDelay: "120ms" }}>
+                <p key={`kind-${c.id}`} className="swap-in mt-3 text-lg text-muted" style={{ animationDelay: "120ms" }}>
                   {c.kind}
                 </p>
-                <div className="swap-in mt-10" style={{ animationDelay: "180ms" }}>
+                <div key={`result-${c.id}`} className="swap-in mt-10" style={{ animationDelay: "180ms" }}>
                   <p className="font-mono text-[11px] tracking-widest text-faint uppercase">Result</p>
                   <p
                     className={`mt-2 ${
@@ -154,7 +155,7 @@ export default function Work() {
                     {c.result}
                   </p>
                 </div>
-                <a href={`/work/${c.id}`} className="btn btn-primary cursor-target swap-in mt-10" style={{ animationDelay: "240ms" }}>
+                <a key={`link-${c.id}`} href={`/work/${c.id}`} className="btn btn-primary cursor-target swap-in mt-10" style={{ animationDelay: "240ms" }}>
                   <Roll text="Read the case study" />
                   <Chip />
                 </a>
@@ -210,7 +211,9 @@ export default function Work() {
                       <span className="font-mono text-xs text-faint">{String(i + 1).padStart(2, "0")} / 06</span>
                       <Tags tracks={cs.tracks} />
                     </div>
-                    <h3 className="mt-4 font-display text-3xl font-extrabold tracking-tight">{cs.name}</h3>
+                    <h3 className="mt-4 font-display text-3xl font-extrabold tracking-tight">
+                      <DecodeText text={cs.name} reveal />
+                    </h3>
                     <p className="mt-1 text-muted">{cs.kind}</p>
                   </div>
 

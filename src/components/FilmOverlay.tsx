@@ -25,16 +25,20 @@ function grainTile() {
  * The film finish over the whole site:
  * - letterbox bars that close in for the opening, page changes and each cut
  *   between chapters (scrubbed with the shape change);
- * - a chapter title that sweeps across behind the content during that cut;
+ * - the title slice during that cut: the chapter's name rises as a full-screen card,
+ *   then splits along a blue seam and the halves slide apart to show the new section;
  * - a vignette over the 3D scene, and faint animated grain over everything.
  * Reads the shared `film` state every frame; never re-renders.
  */
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
 export default function FilmOverlay() {
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const labelRef = useRef<HTMLSpanElement>(null);
-  const noRef = useRef<HTMLSpanElement>(null);
+  const sliceTopRef = useRef<HTMLDivElement>(null);
+  const sliceBottomRef = useRef<HTMLDivElement>(null);
+  const seamRef = useRef<HTMLDivElement>(null);
   const grainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,8 +47,18 @@ export default function FilmOverlay() {
 
     let bars = reduce ? 0 : film.forceBars;
     let lastBars = -1;
-    let lastCard = "";
+    let lastSlice = "";
     let label = "";
+    let down = true; // scroll direction, held while the reader pauses
+    const halves = [sliceTopRef.current, sliceBottomRef.current];
+    const setLabel = (name: string, no: string) => {
+      halves.forEach((half) => {
+        const n = half?.querySelector<HTMLElement>("[data-slice-name]");
+        const k = half?.querySelector<HTMLElement>("[data-slice-no]");
+        if (n) n.textContent = name;
+        if (k) k.textContent = no;
+      });
+    };
     const tick = () => {
       // letterbox: held by the opening / page changes, or following a chapter cut
       const cut = film.chapter ? film.morph : 0;
@@ -57,18 +71,38 @@ export default function FilmOverlay() {
         if (bottomRef.current) bottomRef.current.style.transform = s;
       }
 
-      // chapter title sweeping right to left as the shape changes
-      if (film.chapter !== label && film.chapter) {
-        label = film.chapter;
-        if (labelRef.current) labelRef.current.textContent = film.chapter;
-        if (noRef.current) noRef.current.textContent = film.chapterNo;
+      // title slice, scrubbed with the shape change: the card rises over the old section,
+      // a seam lights across it, then the halves part to show the new one. Scrolling up runs
+      // it backwards with the name of the section above, the one being entered.
+      if (Math.abs(film.velocity) > 0.02) down = film.velocity > 0;
+      const name = down ? film.chapter : film.chapterFrom;
+      const no = down ? film.chapterNo : film.chapterFromNo;
+      if (name && name !== label) {
+        label = name;
+        setLabel(name, no);
       }
-      const show = film.chapter && !reduce ? Math.pow(Math.sin(Math.PI * film.mix), 1.4) : 0;
-      const css = `${show.toFixed(3)}|${film.mix.toFixed(3)}`;
-      if (css !== lastCard && cardRef.current) {
-        lastCard = css;
-        cardRef.current.style.opacity = (show * 0.85).toFixed(3);
-        cardRef.current.style.transform = `translate3d(${((0.5 - film.mix) * 50).toFixed(2)}vw,0,0)`;
+      const m = film.mix;
+      const on = !reduce && !!name && m > 0.001 && m < 0.999;
+      const rise = inOut(clamp01(m / 0.42));
+      const split = inOut(clamp01((m - 0.52) / 0.48));
+      const seam = clamp01((m - 0.44) / 0.1) * (1 - clamp01((m - 0.62) / 0.18));
+      const css = on ? `${m.toFixed(4)}` : "off";
+      if (css !== lastSlice) {
+        lastSlice = css;
+        const lift = (1 - rise) * 102;
+        const [top, bottom] = halves;
+        if (top) {
+          top.style.visibility = on ? "visible" : "hidden";
+          top.style.transform = `translate3d(${(-14 * split).toFixed(2)}vw, ${(lift - 58 * split).toFixed(2)}%, 0)`;
+        }
+        if (bottom) {
+          bottom.style.visibility = on ? "visible" : "hidden";
+          bottom.style.transform = `translate3d(${(14 * split).toFixed(2)}vw, ${(lift + 58 * split).toFixed(2)}%, 0)`;
+        }
+        if (seamRef.current) {
+          seamRef.current.style.opacity = on ? seam.toFixed(3) : "0";
+          seamRef.current.style.transform = `scaleX(${clamp01((m - 0.44) / 0.1).toFixed(3)})`;
+        }
       }
     };
     gsap.ticker.add(tick);
@@ -99,16 +133,16 @@ export default function FilmOverlay() {
       <div aria-hidden="true" className="film-horizon page-horizon pointer-events-none fixed inset-0 -z-[4]" />
       <div aria-hidden="true" className="film-vignette pointer-events-none fixed inset-0 -z-[4]" />
 
-      {/* chapter title: behind the content, in front of the scene */}
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-[3] flex items-center justify-center overflow-hidden">
-        <div ref={cardRef} className="flex flex-col items-center opacity-0 will-change-transform">
-          <span ref={noRef} className="mb-3 font-mono text-xs tracking-[0.4em] text-faint" />
-          <span
-            ref={labelRef}
-            className="font-display text-[clamp(5rem,19vw,20rem)] leading-[0.85] tracking-[-0.04em] whitespace-nowrap text-transparent uppercase [-webkit-text-stroke:1.5px_var(--text)] [font-variation-settings:'wght'_850,'wdth'_125,'opsz'_144]"
-          />
-        </div>
+      {/* title slice: two clipped copies of one card, above the content and below the bars */}
+      <div ref={sliceTopRef} aria-hidden="true" className="film-slice film-slice-top">
+        <span data-slice-no className="film-slice-no" />
+        <span data-slice-name className="film-slice-name" />
       </div>
+      <div ref={sliceBottomRef} aria-hidden="true" className="film-slice film-slice-bottom">
+        <span data-slice-no className="film-slice-no" />
+        <span data-slice-name className="film-slice-name" />
+      </div>
+      <div ref={seamRef} aria-hidden="true" className="film-seam" />
 
       {/* letterbox bars: above the content, below the header buttons */}
       <div

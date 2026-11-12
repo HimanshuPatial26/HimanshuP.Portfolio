@@ -1280,6 +1280,8 @@ export default function ChromeScene() {
       film.morph = changing ? Math.sin(Math.PI * mix) : 0;
       film.chapter = changing ? sb.chapter : "";
       film.chapterNo = changing ? sb.chapterNo : "";
+      film.chapterFrom = changing ? sa.chapter : "";
+      film.chapterFromNo = changing ? sa.chapterNo : "";
       film.grade = cur.grade;
       film.formed = changing ? "" : sa.shape;
 

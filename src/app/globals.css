@@ -150,6 +150,96 @@ body {
   animation: swap-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* chapter cut (FilmOverlay): the next chapter's name rises as a card, a seam lights across
+   it and the two clipped halves part to show the new section; scrubbed with the scroll */
+.film-slice {
+  position: fixed;
+  inset: 0;
+  z-index: 37;
+  pointer-events: none;
+  visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  will-change: transform;
+}
+.film-slice-top {
+  clip-path: inset(0 0 50% 0);
+}
+.film-slice-bottom {
+  clip-path: inset(50% 0 0 0);
+}
+.film-slice-no {
+  margin-bottom: 1.25rem;
+  font: 400 12px/1 var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.4em;
+  color: var(--faint);
+}
+.film-slice-name {
+  font-family: var(--font-syne), "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
+  font-size: clamp(3.4rem, 15vw, 16rem);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text);
+}
+.film-seam {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  z-index: 37;
+  pointer-events: none;
+  background: var(--ai);
+  box-shadow: 0 0 18px var(--ai);
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+}
+
+/* Selected Work: a scan line sweeps the pinned case as its name decodes */
+.decode-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  background: var(--growth);
+  box-shadow: 0 0 14px var(--growth);
+  opacity: 0;
+  animation: decode-scan 0.9s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.decode-scan[data-ai] {
+  background: var(--ai);
+  box-shadow: 0 0 14px var(--ai);
+}
+@keyframes decode-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .decode-scan {
+    display: none;
+  }
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;

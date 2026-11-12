@@ -20,6 +20,9 @@ export const film = {
   /** label of the section being entered during a shape change ("" if none) */
   chapter: "",
   chapterNo: "",
+  /** label of the section above it in the same change: the one being entered when scrolling up */
+  chapterFrom: "",
+  chapterFromNo: "",
   /** -1 AI blue .. 0 neutral .. +1 Growth orange */
   grade: 0,
   /** scroll speed in viewport heights per second (signed) */
