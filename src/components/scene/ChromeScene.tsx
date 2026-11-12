@@ -1,19 +1,23 @@
 "use client";
 
 /**
- * Full-site 3D scene (mounted once in the root layout): molten rock.
+ * Full-site 3D scene (mounted once in the root layout).
  *
  * Every section asks for an object with `data-shape`. The hero (`husk`) is Ember Husk
  * (./husk.ts): charred rock slabs with blue light in the cracks, a swarm of crosses and pebbles,
  * drawn through its own glow pipeline exactly as the original component draws it. The other
  * sections get chunky shapes built in Blender (public/models/chrome-shapes.glb) or 3D text in Syne
- * for `data-shape="text:₹4M"`, all in the husk's stone (./rock.ts). Between sections the current
- * object heats, melts into a blob of blue lava and the lava cools into the next one: every object
- * maps onto the same blob surface, so the hand-over at the midpoint is seamless. The hero bursts
- * open and the lava (its molten core) comes out of its hollow.
+ * for `data-shape="text:₹4M"`, in liquid glass. Between sections the current object melts into a
+ * liquid blob and the blob re-forms into the next one: every object maps onto the same blob
+ * surface, so the hand-over at the midpoint is seamless. The hero bursts open and the liquid blob
+ * (its core) comes out of its hollow.
  *
- * On capable desktops highlights bloom; slow frame rates step down bloom, then resolution, then
- * the stone's detail (never the hero's). The black → blue horizon of the page is drawn here.
+ * The glass look (from his reference): clear, colourless liquid glass in a black-and-white studio,
+ * with a faint prismatic fringe. The glass sees a bright studio of warped bands through itself
+ * (drawn only into the refraction pass; the page behind stays black or grey), which refraction
+ * bends into black liquid streaks. On capable desktops highlights also bloom; slow frame rates
+ * step down bloom, then resolution, then glass (to silver chrome); never the hero. The black → blue
+ * horizon of the page is drawn here (not in CSS).
  *
  * The camera is one continuous shot: each shape has a ShotIn/ShotOut empty
  * (placed in Blender); it drifts In → Out while a section is on screen and
@@ -42,7 +46,6 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { film } from "@/lib/film";
 import { createHusk, createHuskPost } from "./husk";
-import { createPebbles, rockShapeMaterial, type RockMat } from "./rock";
 
 /** Where the subject sits on screen (fx, fy in -1..1) and how far the camera stands. */
 type Frame = { fx: number; fy: number; dist: number };
@@ -81,8 +84,8 @@ const HUSK_SCALE = 1.45;
 
 // horizon: the reference's electric blue rising from the bottom of the screen (as --horizon in globals.css)
 const PALETTE = {
-  dark: { bg: "#000000", tintAI: "#00061c", tintGrowth: "#070708", haloN: "#0b1430", haloAI: "#0146f9", haloGrowth: "#8f97a6", haloOpacity: 0.32, horizon: 0.42, bloom: 0.25 },
-  light: { bg: "#d4d4d4", tintAI: "#c7cfe6", tintGrowth: "#cdcdcd", haloN: "#e6e6e6", haloAI: "#7d9bff", haloGrowth: "#ffffff", haloOpacity: 0.45, horizon: 0.2, bloom: 0 },
+  dark: { bg: "#000000", tintAI: "#00061c", tintGrowth: "#070708", metal: "#ffffff", metalAI: "#eef1f8", haloN: "#0b1430", haloAI: "#0146f9", haloGrowth: "#8f97a6", haloOpacity: 0.32, horizon: 0.42, glassTint: "#c9ced6", glassDepth: 2.2, bloom: 0.25 },
+  light: { bg: "#d4d4d4", tintAI: "#c7cfe6", tintGrowth: "#cdcdcd", metal: "#ffffff", metalAI: "#eef1f8", haloN: "#e6e6e6", haloAI: "#7d9bff", haloGrowth: "#ffffff", haloOpacity: 0.45, horizon: 0.2, glassTint: "#d5d9df", glassDepth: 2.6, bloom: 0 },
 };
 type Palette = typeof PALETTE.dark;
 
@@ -190,6 +193,56 @@ const VERT_NORMAL = /* glsl */ `
   #endif
 `;
 
+function liquidMaterial(
+  shared: Record<string, THREE.IUniform>,
+  melt: THREE.IUniform,
+  wobble: THREE.IUniform,
+  color: string,
+  envMapIntensity: number,
+) {
+  const mat = new THREE.MeshPhysicalMaterial({
+    color,
+    metalness: 1,
+    roughness: 0.07,
+    clearcoat: 1,
+    clearcoatRoughness: 0.04,
+    envMapIntensity,
+  });
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, shared, { uMelt: melt, uWobble: wobble });
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", `#include <common>\n${NOISE}`)
+      .replace("#include <beginnormal_vertex>", VERT_NORMAL)
+      .replace("#include <begin_vertex>", "vec3 transformed = lqPos;");
+  };
+  mat.customProgramCacheKey = () => "liquid-chrome-2";
+  return mat;
+}
+
+/** Clear, colourless glass: the fixed parts (whether it's glass or chrome is set by setGlass). */
+function glassReady(mat: THREE.MeshPhysicalMaterial) {
+  mat.thickness = 1.6;
+  mat.ior = 1.55;
+  mat.iridescenceIOR = 1.3;
+  mat.iridescenceThicknessRange = [200, 420];
+  mat.specularIntensity = 1;
+  mat.clearcoatRoughness = 0.02;
+}
+
+/**
+ * Glass (1) or silver chrome (0, the fallback for phones and slow frame rates). Transmission,
+ * dispersion and the faint thin-film sheen switch fully off for chrome, so it costs nothing extra.
+ */
+function setGlass(mat: THREE.MeshPhysicalMaterial, g: number) {
+  const k = g > 0.01 ? g : 0;
+  mat.transmission = k;
+  mat.metalness = 1 - k;
+  mat.roughness = lerp(0.07, 0.02, k);
+  mat.dispersion = 3.5 * k;
+  mat.iridescence = 0.12 * k;
+  mat.envMapIntensity = lerp(1.55, 1.2, k);
+}
+
 /** Where each vertex goes on the blob when a shape melts: straight out from its centre. */
 function radialMeltDirs(g: THREE.BufferGeometry) {
   const p = g.attributes.position;
@@ -221,12 +274,17 @@ const BACKDROP_GLSL = /* glsl */ `
   }
 `;
 
-/** The background (see BACKDROP_GLSL), drawn behind everything. */
+/**
+ * The background (see BACKDROP_GLSL). In the refraction pass (uInGlass = 1) it draws the studio
+ * the glass sees through itself instead: bright grey with warped, thin dark bands, which refraction
+ * bends into the reference's black liquid streaks.
+ */
 function backdrop() {
   const uniforms = {
     uBg: { value: new THREE.Vector3() },
     uHorizon: { value: new THREE.Vector3(1 / 255, 70 / 255, 249 / 255) },
     uAmt: { value: 0.42 },
+    uInGlass: { value: 0 },
     // the bright pool of light the husk hangs over (Ember Husk's ground), only on the hero
     uPool: { value: 0 },
     // (matched to the original's pixels: deep, saturated blue; a softer fall-off stands in for
@@ -242,9 +300,19 @@ function backdrop() {
     // colours arrive in sRGB and blend in sRGB, as the browser does for CSS gradients
     fragmentShader: /* glsl */ `
       ${BACKDROP_GLSL}
-      varying vec2 vUv;
+      uniform float uInGlass; varying vec2 vUv;
       void main(){
+        float y = vUv.y;
         vec3 c = backdropColor(vUv);
+        // in the refraction pass: the bright studio of warped bands the glass sees through itself
+        if (uInGlass > 0.5) {
+          vec2 q = vUv;
+          q.x += 0.05 * sin(q.y * 7.0 + q.x * 3.0) + 0.025 * sin(q.y * 17.0 - q.x * 5.0);
+          float w = 0.5 + 0.5 * sin(q.x * 6.2831 * 9.0);
+          float w2 = 0.5 + 0.5 * sin((q.x * 0.6 + q.y * 0.8) * 6.2831 * 5.0);
+          float k = smoothstep(0.12, 0.28, min(w, mix(1.0, w2, 0.6)));
+          c = vec3(mix(0.05, 0.95, k) * mix(0.82, 1.05, y));
+        }
         gl_FragColor = sRGBTransferEOTF(vec4(c, 1.0));
         #include <colorspace_fragment>
       }`,
@@ -253,6 +321,60 @@ function backdrop() {
   mesh.frustumCulled = false;
   mesh.renderOrder = -10;
   return { mesh, uniforms };
+}
+
+/**
+ * A black-and-white studio for the glass and chrome to reflect: a grey dome, white strip
+ * lights, soft white cards and black flags (the dark bands in the reflections). No colour.
+ */
+function studioEnv(renderer: THREE.WebGLRenderer, light: boolean) {
+  const s = new THREE.Scene();
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(40, 48, 24),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      uniforms: { light: { value: light ? 1 : 0 } },
+      vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: `uniform float light; varying vec3 vP; void main(){
+        float h = vP.y;
+        vec3 floorC = mix(vec3(0.015), vec3(0.32), light);
+        vec3 horizon = mix(vec3(0.12), vec3(0.95), light);
+        vec3 top = mix(vec3(0.25), vec3(0.7), light);
+        vec3 c = h > 0.0 ? mix(horizon, top, smoothstep(0.0, 0.6, h)) : mix(horizon, floorC, smoothstep(0.0, -0.35, h));
+        gl_FragColor = vec4(c, 1.0); }`,
+    }),
+  );
+  s.add(dome);
+  const panel = (w: number, h: number, k: number, pos: [number, number, number]) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide }));
+    m.position.set(...pos);
+    m.lookAt(0, 0, 0);
+    s.add(m);
+  };
+  panel(30, 2.4, 9, [0, 14, 6]); // overhead strip
+  panel(2.4, 20, 7, [-14, 2, 8]); // side strips
+  panel(1.6, 16, 7, [13, -1, 9]);
+  panel(18, 12, 1.6, [-9, 5, -15]); // soft cards behind
+  panel(10, 16, 1.1, [11, -3, -13]);
+  // a soft fill behind the camera and a broad sky overhead (up-facing faces: wings, stair treads)
+  panel(16, 7, light ? 1.6 : 0.7, [0, 3, 18]);
+  panel(40, 16, light ? 1.3 : 0.45, [0, 20, -2]);
+  // black flags
+  panel(5, 26, 0, [-7, 0, -11]);
+  panel(4, 26, 0, [6, 0, -14]);
+  panel(26, 3, 0, [0, -9, 10]);
+  panel(4, 30, 0, [-7, 0, 15]);
+  panel(3, 30, 0, [6, 0, 16]);
+  panel(30, 2.5, 0, [0, 8, 14]);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const tex = pmrem.fromScene(s, 0.02).texture;
+  pmrem.dispose();
+  s.traverse((o) => {
+    const m = o as THREE.Mesh;
+    m.geometry?.dispose();
+    (m.material as THREE.Material | undefined)?.dispose?.();
+  });
+  return tex;
 }
 
 function haloTexture() {
@@ -324,7 +446,7 @@ type Obj = { mesh: THREE.Mesh; melt: THREE.IUniform; wobble: THREE.IUniform; mat
  * Glass, bloom and pixel density cost the most. Starting from what the device tier allows,
  * the scene steps down one at a time while frames run slow: bloom, then resolution, then the stone's detail.
  */
-type Quality = { detail: boolean; bloom: boolean; dpr: number };
+type Quality = { glass: boolean; bloom: boolean; dpr: number };
 
 export default function ChromeScene() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -355,18 +477,20 @@ export default function ChromeScene() {
     }
     // full stone detail from the stronger phones up, bloom on desktops only (the governor still steps down)
     const quality: Quality = {
-      detail: forceHQ || tier.level >= 1,
+      glass: forceHQ || tier.level >= 1,
       bloom: !posterMode && (forceHQ || tier.level >= 2),
       dpr: Math.min(window.devicePixelRatio, tier.dpr),
     };
-    film.quality = quality.bloom ? 3 : quality.detail ? 1 : 0;
+    film.quality = quality.bloom ? 3 : quality.glass ? 1 : 0;
     const tierDpr = quality.dpr;
     // what the scene is drawing at, readable from the page (for checking on a real device)
     const markQuality = () =>
-      (document.documentElement.dataset.sceneQuality = `glow:${quality.bloom ? "on" : "off"} resolution:${quality.dpr} detail:${quality.detail ? "full" : "low"}`);
+      (document.documentElement.dataset.sceneQuality = `glow:${quality.bloom ? "on" : "off"} resolution:${quality.dpr} glass:${quality.glass ? "on" : "chrome"}`);
     markQuality();
     renderer.setPixelRatio(quality.dpr);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // what the glass sees through itself is blurred anyway: half resolution is plenty
+    renderer.transmissionResolutionScale = 0.5;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     host.appendChild(renderer.domElement);
@@ -381,6 +505,12 @@ export default function ChromeScene() {
 
     const sky = backdrop();
     scene.add(sky.mesh);
+    // any render target other than the screen (or the bloom buffer) is three's refraction pass
+    let screenTarget: THREE.WebGLRenderTarget | null = null;
+    sky.mesh.onBeforeRender = (r) => {
+      const t = r.getRenderTarget();
+      sky.uniforms.uInGlass.value = t !== null && t !== screenTarget ? 1 : 0;
+    };
 
     // a soft pool of coloured light behind the subject: the chapter's colour grade
     const haloTex = haloTexture();
@@ -404,18 +534,17 @@ export default function ChromeScene() {
     };
     const objects = new Map<string, Obj>();
     let pal: Palette = PALETTE.dark;
-    // molten rock: every shape is the husk's stone; between sections it melts into glowing lava
-    // and the lava cools into the next one (./rock.ts)
-    const rockMats = new Set<RockMat>();
-    const addObject = (key: string, geo: THREE.BufferGeometry, isHero = false, pale = 0) => {
+    // the shapes after the hero: liquid glass (chrome on slower devices) that melts into a shared
+    // blob between sections and re-forms as the next one
+    const allMats = new Set<THREE.MeshPhysicalMaterial>();
+    const addObject = (key: string, geo: THREE.BufferGeometry, isHero = false) => {
       if (!geo.attributes.meltDir) radialMeltDirs(geo);
       const melt = { value: 0 };
       const wobble = { value: 0 };
-      const rock = rockShapeMaterial({ noise: NOISE, vertex: VERT_NORMAL }, { ...shared, uMelt: melt, uWobble: wobble }, pale);
-      rock.setTheme(pal === PALETTE.light);
-      rock.setLow(!quality.detail);
-      rockMats.add(rock);
-      const mat: THREE.Material = rock.mat;
+      const mat = liquidMaterial(shared, melt, wobble, pal.metal, 1.55);
+      glassReady(mat);
+      setGlass(mat, quality.glass ? 1 : 0);
+      allMats.add(mat);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.visible = false;
       mesh.frustumCulled = false;
@@ -446,9 +575,14 @@ export default function ChromeScene() {
     const huskPost = createHuskPost(renderer, { glsl: BACKDROP_GLSL, uniforms: sky.uniforms });
     huskPost.setAlphaGlow(posterMode);
 
-    // rock pebbles orbiting the shapes
-    const pebbles = createPebbles(tier.bubbles);
-    const bubbles = pebbles.mesh;
+    // bubbles: small glass spheres orbiting the object
+    const bubbleMat = new THREE.MeshPhysicalMaterial({ color: pal.metal, metalness: 1, roughness: 0.05, clearcoat: 1, envMapIntensity: 1.3 });
+    glassReady(bubbleMat);
+    setGlass(bubbleMat, quality.glass ? 1 : 0);
+    allMats.add(bubbleMat);
+    const applyGlass = (g: number) => allMats.forEach((m) => setGlass(m, g));
+    const bubbleGeo = new THREE.SphereGeometry(1, 32, 16);
+    const bubbles = new THREE.InstancedMesh(bubbleGeo, bubbleMat, tier.bubbles);
     bubbles.frustumCulled = false;
     scene.add(bubbles); // follows the pivot's position, but not its scale (they fly in during the opening)
     const xAxis = new THREE.Vector3(1, 0, 0);
@@ -472,11 +606,14 @@ export default function ChromeScene() {
     const bs = new THREE.Vector3();
     const bp = new THREE.Vector3();
 
-    // ---- theme
+    // ---- environment + theme
+    let envTex: THREE.Texture | null = null;
     const col = {
       bg: new THREE.Color(),
       tintAI: new THREE.Color(),
       tintGrowth: new THREE.Color(),
+      metal: new THREE.Color(),
+      metalAI: new THREE.Color(),
       haloN: new THREE.Color(),
       haloAI: new THREE.Color(),
       haloGrowth: new THREE.Color(),
@@ -486,10 +623,15 @@ export default function ChromeScene() {
       pal = light ? PALETTE.light : PALETTE.dark;
       (Object.keys(col) as (keyof typeof col)[]).forEach((k) => col[k].set(pal[k]));
       renderer.setClearColor(col.bg, 1);
+      envTex?.dispose();
+      envTex = studioEnv(renderer, light);
+      scene.environment = envTex;
+      allMats.forEach((m) => {
+        m.attenuationColor.set(pal.glassTint);
+        m.attenuationDistance = pal.glassDepth;
+      });
       sky.uniforms.uAmt.value = pal.horizon;
       husk.setTheme(light);
-      rockMats.forEach((r) => r.setTheme(light));
-      pebbles.setTheme(light);
       haloMat.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
       haloMat.needsUpdate = true;
     };
@@ -522,6 +664,7 @@ export default function ChromeScene() {
         }),
       );
       post = { rt, bloom, copy };
+      screenTarget = rt;
 
     }
     const resizePost = () => {
@@ -541,10 +684,10 @@ export default function ChromeScene() {
         quality.dpr = 1;
         renderer.setPixelRatio(1);
         resizePost();
-      } else if (quality.detail) {
-        // the shapes' stone gets simpler grain (the hero husk keeps its full detail)
-        quality.detail = false;
-        rockMats.forEach((r) => r.setLow(true));
+      } else if (quality.glass) {
+        // the shapes turn from glass to silver chrome (the hero husk keeps its full detail)
+        quality.glass = false;
+        applyGlass(0);
       }
       film.quality = Math.max(0, film.quality - 1);
       markQuality();
@@ -552,7 +695,7 @@ export default function ChromeScene() {
     // (frames between sections don't count: a brief heavy hand-over shouldn't cost the formed shapes their detail)
     let busy = false;
     const govern = (rawDt: number) => {
-      if (forceHQ || !(quality.detail || quality.bloom || quality.dpr > 1) || film.intro < 1 || busy) return;
+      if (forceHQ || !(quality.glass || quality.bloom || quality.dpr > 1) || film.intro < 1 || busy) return;
       if (perf.wait > 0) {
         perf.wait -= rawDt;
         return;
@@ -607,7 +750,7 @@ export default function ChromeScene() {
       geo.deleteAttribute("uv");
       geo = new TessellateModifier(0.14, 7).modify(geo);
       textHalfWidth.set(key, (w * s) / 2);
-      addObject(key, geo, false, 1); // the numbers' stone is paler, so they read
+      addObject(key, geo);
       pair = "";
     };
     const mergeParts = (parts: THREE.BufferGeometry[]) => {
@@ -644,15 +787,18 @@ export default function ChromeScene() {
     );
 
     // compile every shader variant now, behind the opening, so nothing stutters on first use
-    // (both levels of stone detail: the governor may step down to the simpler one)
+    // (glass, and the chrome fallback the frame-rate governor may switch to)
     const prewarm = () => {
       const list = [...objects.values()];
       const was = list.map((o) => o.mesh.visible);
       list.forEach((o) => (o.mesh.visible = true));
-      rockMats.forEach((r) => r.setLow(quality.detail));
+      if (quality.glass) {
+        applyGlass(1);
+        renderer.compile(scene, camera);
+      }
+      applyGlass(0);
       renderer.compile(scene, camera);
-      rockMats.forEach((r) => r.setLow(!quality.detail));
-      renderer.compile(scene, camera);
+      applyGlass(quality.glass ? 1 : 0);
       list.forEach((o, i) => (o.mesh.visible = was[i]));
       husk.prewarm(() => huskPost.render(scene, camera, false));
     };
@@ -886,6 +1032,7 @@ export default function ChromeScene() {
     const bg = new THREE.Color();
     const srgb = { r: 0, g: 0, b: 0 };
     const haloCol = new THREE.Color();
+    const metal = new THREE.Color();
 
     const frame = () => {
       const rawDt = clock.getDelta();
@@ -958,6 +1105,9 @@ export default function ChromeScene() {
       show.mesh.visible = !heroNow || open > 0.002;
       show.melt.value = melt;
       show.wobble.value = show.hero && !reduce ? 1 - melt : 0;
+      // the shared liquid is silver chrome: glass gives way as a shape melts and returns as it forms
+      // (also keeps the half-melted blob, which fills much of the screen, cheap to draw)
+      if (show.mat instanceof THREE.MeshPhysicalMaterial) setGlass(show.mat, quality.glass ? 1 - smooth(clamp01((melt - 0.35) / 0.5)) : 0);
       // the governor skips hand-overs, and the hero (it keeps its full quality, so it mustn't cost
       // the rest theirs)
       busy = changing || scatter > 0.01 || heroNow;
@@ -1087,6 +1237,8 @@ export default function ChromeScene() {
       if (posterMode) sky.mesh.visible = halo.visible = false;
       bg.getRGB(srgb, THREE.SRGBColorSpace);
       sky.uniforms.uBg.value.set(srgb.r, srgb.g, srgb.b);
+      metal.copy(col.metal).lerp(col.metalAI, cur.grade < 0 ? g * 0.6 : 0);
+      allMats.forEach((m) => m.color.copy(metal));
       haloCol.copy(col.haloN).lerp(cur.grade < 0 ? col.haloAI : col.haloGrowth, g);
       haloMat.color.copy(haloCol);
       haloMat.opacity = pal.haloOpacity * (0.55 + 0.45 * g) * (reduce ? 1 : intro) * (1 - heroP);
@@ -1103,7 +1255,7 @@ export default function ChromeScene() {
           shared.uMouse.value.copy(hit.applyMatrix4(inv));
         }
         // (cold stone doesn't give: in molten rock only the lava dents)
-        shared.uMouseStrength.value = damp(shared.uMouseStrength.value, melt, 6, dt);
+        shared.uMouseStrength.value = damp(shared.uMouseStrength.value, 1, 6, dt);
       } else {
         shared.uMouseStrength.value = damp(shared.uMouseStrength.value, 0, 4, dt);
       }
@@ -1191,7 +1343,9 @@ export default function ChromeScene() {
       });
       husk.dispose();
       huskPost.dispose();
-      pebbles.dispose();
+      bubbleGeo.dispose();
+      bubbleMat.dispose();
+      envTex?.dispose();
       sky.mesh.geometry.dispose();
       (sky.mesh.material as THREE.Material).dispose();
       if (post) {
