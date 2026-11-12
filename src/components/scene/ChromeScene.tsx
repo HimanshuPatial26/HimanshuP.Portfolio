@@ -1,22 +1,19 @@
 "use client";
 
 /**
- * Full-site liquid-chrome scene (mounted once in the root layout).
+ * Full-site 3D scene (mounted once in the root layout): molten rock.
  *
- * Every section asks for an object with `data-shape`: the hero is a liquid
- * glass orb (froth at its edges, a liquid sheet inside) with orbiting bubbles; the other sections get chunky shapes built in
- * Blender (public/models/chrome-shapes.glb) or 3D text in Syne for
- * `data-shape="text:₹4M"`. Between sections the current object melts into a
- * liquid blob and the blob re-forms into the next one: every object maps onto
- * the same "blob" surface, so the hand-over at the midpoint is seamless.
+ * Every section asks for an object with `data-shape`. The hero (`husk`) is Ember Husk
+ * (./husk.ts): charred rock slabs with blue light in the cracks, a swarm of crosses and pebbles,
+ * drawn through its own glow pipeline exactly as the original component draws it. The other
+ * sections get chunky shapes built in Blender (public/models/chrome-shapes.glb) or 3D text in Syne
+ * for `data-shape="text:₹4M"`, all in the husk's stone (./rock.ts). Between sections the current
+ * object heats, melts into a blob of blue lava and the lava cools into the next one: every object
+ * maps onto the same blob surface, so the hand-over at the midpoint is seamless. The hero bursts
+ * open and the lava (its molten core) comes out of its hollow.
  *
- * The look (from his reference): clear, colourless liquid glass in a
- * black-and-white studio, with a faint prismatic fringe. The glass sees a bright
- * studio of warped bands through itself (drawn only into the refraction pass;
- * the page behind stays black or grey), which refraction bends into black liquid
- * streaks. On capable desktops highlights also bloom; phones, small laptops and
- * slow frame rates fall back to silver chrome without bloom. The black → blue
- * horizon of the page is drawn here (not in CSS).
+ * On capable desktops highlights bloom; slow frame rates step down bloom, then resolution, then
+ * the stone's detail (never the hero's). The black → blue horizon of the page is drawn here.
  *
  * The camera is one continuous shot: each shape has a ShotIn/ShotOut empty
  * (placed in Blender); it drifts In → Out while a section is on screen and
@@ -30,7 +27,7 @@
  * Events in: "route:leave", "route:enter", "themechange", "plane:launch", "scene:spin" (drag
  * to turn the object), "scene:reshape" (a section changed its data-shape in place).
  * Events out: "scene:progress" (0..1), "scene:ready".
- * Add ?hq to the URL to keep glass and bloom on regardless of the device.
+ * Add ?hq to the URL to keep full detail and bloom on regardless of the device.
  */
 
 import { useEffect, useRef } from "react";
@@ -44,6 +41,8 @@ import { FullScreenQuad } from "three/examples/jsm/postprocessing/Pass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { film } from "@/lib/film";
+import { createHusk, createHuskPost } from "./husk";
+import { createPebbles, rockShapeMaterial, type RockMat } from "./rock";
 
 /** Where the subject sits on screen (fx, fy in -1..1) and how far the camera stands. */
 type Frame = { fx: number; fy: number; dist: number };
@@ -60,6 +59,14 @@ const FRAMES: Record<string, Frame> = {
   // Impact numbers: right half beside the list on desktop (pulled back to fit), top half on phones
   number: { fx: 0.42, fy: 0.04, dist: 6.5 },
 };
+/**
+ * Ember Husk's own lens: a 40° camera standing about 5.4 husk radii off (its default size), so the
+ * swarm has the original's depth; on phones it stands back to keep the same share of the short side.
+ */
+const HUSK_FOV = 40;
+const SCENE_FOV = 32;
+const HUSK_FRAME: Frame = { fx: 0, fy: -0.02, dist: 7.85 };
+const HUSK_FRAME_NARROW: Frame = { fx: 0, fy: 0.08, dist: 17 };
 
 const REF_DIST = 7;
 const FRONT_SHOT = { in: new THREE.Vector3(0, 0.25, 7.2), out: new THREE.Vector3(0, 0.2, 6.9) };
@@ -67,12 +74,15 @@ const FRONT_SHOT = { in: new THREE.Vector3(0, 0.25, 7.2), out: new THREE.Vector3
 const DIP = 0.22;
 /** Radius of the shared liquid blob every object melts into. */
 const BLOB_R = 1.55;
-const HERO = "Shape_Globe"; // the hero's data-shape: the liquid glass orb (blender/orb_shape.py)
+const HERO = "husk"; // the hero's data-shape: Ember Husk (./husk.ts), drawn by its own shaders
+const ORB = "Shape_Globe"; // the liquid glass orb (blender/orb_shape.py): still in the shapes file, no section uses it now
+/** The husk is built at unit radius; this sets it about the size the orb was. */
+const HUSK_SCALE = 1.45;
 
 // horizon: the reference's electric blue rising from the bottom of the screen (as --horizon in globals.css)
 const PALETTE = {
-  dark: { bg: "#000000", tintAI: "#00061c", tintGrowth: "#070708", metal: "#ffffff", metalAI: "#eef1f8", haloN: "#0b1430", haloAI: "#0146f9", haloGrowth: "#8f97a6", haloOpacity: 0.32, horizon: 0.42, glassTint: "#c9ced6", glassDepth: 2.2, bloom: 0.25 },
-  light: { bg: "#d4d4d4", tintAI: "#c7cfe6", tintGrowth: "#cdcdcd", metal: "#ffffff", metalAI: "#eef1f8", haloN: "#e6e6e6", haloAI: "#7d9bff", haloGrowth: "#ffffff", haloOpacity: 0.45, horizon: 0.2, glassTint: "#d5d9df", glassDepth: 2.6, bloom: 0 },
+  dark: { bg: "#000000", tintAI: "#00061c", tintGrowth: "#070708", haloN: "#0b1430", haloAI: "#0146f9", haloGrowth: "#8f97a6", haloOpacity: 0.32, horizon: 0.42, bloom: 0.25 },
+  light: { bg: "#d4d4d4", tintAI: "#c7cfe6", tintGrowth: "#cdcdcd", haloN: "#e6e6e6", haloAI: "#7d9bff", haloGrowth: "#ffffff", haloOpacity: 0.45, horizon: 0.2, bloom: 0 },
 };
 type Palette = typeof PALETTE.dark;
 
@@ -180,56 +190,6 @@ const VERT_NORMAL = /* glsl */ `
   #endif
 `;
 
-function liquidMaterial(
-  shared: Record<string, THREE.IUniform>,
-  melt: THREE.IUniform,
-  wobble: THREE.IUniform,
-  color: string,
-  envMapIntensity: number,
-) {
-  const mat = new THREE.MeshPhysicalMaterial({
-    color,
-    metalness: 1,
-    roughness: 0.07,
-    clearcoat: 1,
-    clearcoatRoughness: 0.04,
-    envMapIntensity,
-  });
-  mat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, shared, { uMelt: melt, uWobble: wobble });
-    shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", `#include <common>\n${NOISE}`)
-      .replace("#include <beginnormal_vertex>", VERT_NORMAL)
-      .replace("#include <begin_vertex>", "vec3 transformed = lqPos;");
-  };
-  mat.customProgramCacheKey = () => "liquid-chrome-2";
-  return mat;
-}
-
-/** Clear, colourless glass: the fixed parts (whether it's glass or chrome is set by setGlass). */
-function glassReady(mat: THREE.MeshPhysicalMaterial) {
-  mat.thickness = 1.6;
-  mat.ior = 1.55;
-  mat.iridescenceIOR = 1.3;
-  mat.iridescenceThicknessRange = [200, 420];
-  mat.specularIntensity = 1;
-  mat.clearcoatRoughness = 0.02;
-}
-
-/**
- * Glass (1) or silver chrome (0, the fallback for phones and slow frame rates). Transmission,
- * dispersion and the faint thin-film sheen switch fully off for chrome, so it costs nothing extra.
- */
-function setGlass(mat: THREE.MeshPhysicalMaterial, g: number) {
-  const k = g > 0.01 ? g : 0;
-  mat.transmission = k;
-  mat.metalness = 1 - k;
-  mat.roughness = lerp(0.07, 0.02, k);
-  mat.dispersion = 3.5 * k;
-  mat.iridescence = 0.12 * k;
-  mat.envMapIntensity = lerp(1.55, 1.2, k);
-}
-
 /** Where each vertex goes on the blob when a shape melts: straight out from its centre. */
 function radialMeltDirs(g: THREE.BufferGeometry) {
   const p = g.attributes.position;
@@ -243,17 +203,36 @@ function radialMeltDirs(g: THREE.BufferGeometry) {
 }
 
 /**
- * The background: the chapter's colour with the electric-blue horizon, mixed like the CSS
- * gradient. In the refraction pass (uInGlass = 1) it draws the studio the glass sees through
- * itself instead: bright grey with warped, thin dark bands, which refraction bends into the
- * reference's black liquid streaks.
+ * The page behind the 3D, in display (sRGB) colour: the chapter's colour with the electric-blue
+ * horizon, mixed like the CSS gradient, and on the hero Ember Husk's pool of light (wide, centred
+ * below the frame, as its own background draws it). Shared with the husk's final pass, which
+ * draws it itself while the hero is settled.
  */
+const BACKDROP_GLSL = /* glsl */ `
+  uniform vec3 uBg; uniform vec3 uHorizon; uniform float uAmt;
+  uniform float uPool; uniform vec3 uPoolColor; uniform float uAspect;
+  vec3 backdropColor(vec2 uv) {
+    float y = uv.y;
+    float a = y < 0.22 ? mix(1.0, 0.35, y / 0.22) : mix(0.35, 0.0, clamp((y - 0.22) / 0.33, 0.0, 1.0));
+    vec3 c = mix(uBg, uHorizon, a * uAmt * (1.0 - 0.8 * uPool));
+    vec2 q = uv - vec2(0.5, -0.08);
+    q.x *= uAspect * 0.62;
+    return c + uPoolColor * pow(clamp(1.0 - length(q) * 1.02, 0.0, 1.0), 1.8) * uPool;
+  }
+`;
+
+/** The background (see BACKDROP_GLSL), drawn behind everything. */
 function backdrop() {
   const uniforms = {
     uBg: { value: new THREE.Vector3() },
     uHorizon: { value: new THREE.Vector3(1 / 255, 70 / 255, 249 / 255) },
     uAmt: { value: 0.42 },
-    uInGlass: { value: 0 },
+    // the bright pool of light the husk hangs over (Ember Husk's ground), only on the hero
+    uPool: { value: 0 },
+    // (matched to the original's pixels: deep, saturated blue; a softer fall-off stands in for
+    // its tone mapping, which lifts the edges of the pool)
+    uPoolColor: { value: new THREE.Vector3(0.02, 0.15, 0.85) },
+    uAspect: { value: 1 },
   };
   const mat = new THREE.ShaderMaterial({
     uniforms,
@@ -262,19 +241,10 @@ function backdrop() {
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.9999, 1.0); }",
     // colours arrive in sRGB and blend in sRGB, as the browser does for CSS gradients
     fragmentShader: /* glsl */ `
-      uniform vec3 uBg; uniform vec3 uHorizon; uniform float uAmt; uniform float uInGlass; varying vec2 vUv;
+      ${BACKDROP_GLSL}
+      varying vec2 vUv;
       void main(){
-        float y = vUv.y;
-        float a = y < 0.22 ? mix(1.0, 0.35, y / 0.22) : mix(0.35, 0.0, clamp((y - 0.22) / 0.33, 0.0, 1.0));
-        vec3 c = mix(uBg, uHorizon, a * uAmt);
-        if (uInGlass > 0.5) {
-          vec2 q = vUv;
-          q.x += 0.05 * sin(q.y * 7.0 + q.x * 3.0) + 0.025 * sin(q.y * 17.0 - q.x * 5.0);
-          float w = 0.5 + 0.5 * sin(q.x * 6.2831 * 9.0);
-          float w2 = 0.5 + 0.5 * sin((q.x * 0.6 + q.y * 0.8) * 6.2831 * 5.0);
-          float k = smoothstep(0.12, 0.28, min(w, mix(1.0, w2, 0.6)));
-          c = vec3(mix(0.05, 0.95, k) * mix(0.82, 1.05, y));
-        }
+        vec3 c = backdropColor(vUv);
         gl_FragColor = sRGBTransferEOTF(vec4(c, 1.0));
         #include <colorspace_fragment>
       }`,
@@ -283,60 +253,6 @@ function backdrop() {
   mesh.frustumCulled = false;
   mesh.renderOrder = -10;
   return { mesh, uniforms };
-}
-
-/**
- * A black-and-white studio for the glass and chrome to reflect: a grey dome, white strip
- * lights, soft white cards and black flags (the dark bands in the reflections). No colour.
- */
-function studioEnv(renderer: THREE.WebGLRenderer, light: boolean) {
-  const s = new THREE.Scene();
-  const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(40, 48, 24),
-    new THREE.ShaderMaterial({
-      side: THREE.BackSide,
-      uniforms: { light: { value: light ? 1 : 0 } },
-      vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: `uniform float light; varying vec3 vP; void main(){
-        float h = vP.y;
-        vec3 floorC = mix(vec3(0.015), vec3(0.32), light);
-        vec3 horizon = mix(vec3(0.12), vec3(0.95), light);
-        vec3 top = mix(vec3(0.25), vec3(0.7), light);
-        vec3 c = h > 0.0 ? mix(horizon, top, smoothstep(0.0, 0.6, h)) : mix(horizon, floorC, smoothstep(0.0, -0.35, h));
-        gl_FragColor = vec4(c, 1.0); }`,
-    }),
-  );
-  s.add(dome);
-  const panel = (w: number, h: number, k: number, pos: [number, number, number]) => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide }));
-    m.position.set(...pos);
-    m.lookAt(0, 0, 0);
-    s.add(m);
-  };
-  panel(30, 2.4, 9, [0, 14, 6]); // overhead strip
-  panel(2.4, 20, 7, [-14, 2, 8]); // side strips
-  panel(1.6, 16, 7, [13, -1, 9]);
-  panel(18, 12, 1.6, [-9, 5, -15]); // soft cards behind
-  panel(10, 16, 1.1, [11, -3, -13]);
-  // a soft fill behind the camera and a broad sky overhead (up-facing faces: wings, stair treads)
-  panel(16, 7, light ? 1.6 : 0.7, [0, 3, 18]);
-  panel(40, 16, light ? 1.3 : 0.45, [0, 20, -2]);
-  // black flags
-  panel(5, 26, 0, [-7, 0, -11]);
-  panel(4, 26, 0, [6, 0, -14]);
-  panel(26, 3, 0, [0, -9, 10]);
-  panel(4, 30, 0, [-7, 0, 15]);
-  panel(3, 30, 0, [6, 0, 16]);
-  panel(30, 2.5, 0, [0, 8, 14]);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const tex = pmrem.fromScene(s, 0.02).texture;
-  pmrem.dispose();
-  s.traverse((o) => {
-    const m = o as THREE.Mesh;
-    m.geometry?.dispose();
-    (m.material as THREE.Material | undefined)?.dispose?.();
-  });
-  return tex;
 }
 
 function haloTexture() {
@@ -401,13 +317,14 @@ function deviceTier() {
   return { level: 0, dpr: 1.25, bubbles: 8 };
 }
 
-type Obj = { mesh: THREE.Mesh; melt: THREE.IUniform; wobble: THREE.IUniform; mat: THREE.MeshPhysicalMaterial; hero: boolean };
+// hero: the old glass orb's extras (the swell, a wider sway); no section shows the orb now
+type Obj = { mesh: THREE.Mesh; melt: THREE.IUniform; wobble: THREE.IUniform; mat: THREE.Material; hero: boolean };
 
 /**
  * Glass, bloom and pixel density cost the most. Starting from what the device tier allows,
- * the scene steps down one at a time while frames run slow: bloom, then resolution, then glass.
+ * the scene steps down one at a time while frames run slow: bloom, then resolution, then the stone's detail.
  */
-type Quality = { glass: boolean; bloom: boolean; dpr: number };
+type Quality = { detail: boolean; bloom: boolean; dpr: number };
 
 export default function ChromeScene() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -420,36 +337,42 @@ export default function ChromeScene() {
     const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
     let narrow = window.innerWidth < 768;
     const tier = deviceTier();
-    const forceHQ = new URLSearchParams(window.location.search).has("hq");
+    // ?poster: draw the subject alone on a transparent canvas, at full detail, for capturing the
+    // hero's still (public/posters/husk.png: the loader, the no-WebGL fallback and the share image)
+    const posterMode = new URLSearchParams(window.location.search).has("poster");
+    const forceHQ = new URLSearchParams(window.location.search).has("hq") || posterMode;
     film.reduced = reduce;
     film.tier = tier.level;
     let disposed = false;
 
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", alpha: posterMode });
     } catch {
       document.documentElement.dataset.scene = "off";
       window.dispatchEvent(new Event("scene:ready"));
       return;
     }
-    // glass from the stronger phones up, bloom on desktops only (the governor still steps down)
+    // full stone detail from the stronger phones up, bloom on desktops only (the governor still steps down)
     const quality: Quality = {
-      glass: forceHQ || tier.level >= 1,
-      bloom: forceHQ || tier.level >= 2,
+      detail: forceHQ || tier.level >= 1,
+      bloom: !posterMode && (forceHQ || tier.level >= 2),
       dpr: Math.min(window.devicePixelRatio, tier.dpr),
     };
-    film.quality = quality.bloom ? 3 : quality.glass ? 1 : 0;
+    film.quality = quality.bloom ? 3 : quality.detail ? 1 : 0;
+    const tierDpr = quality.dpr;
+    // what the scene is drawing at, readable from the page (for checking on a real device)
+    const markQuality = () =>
+      (document.documentElement.dataset.sceneQuality = `glow:${quality.bloom ? "on" : "off"} resolution:${quality.dpr} detail:${quality.detail ? "full" : "low"}`);
+    markQuality();
     renderer.setPixelRatio(quality.dpr);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    // what the glass sees through itself is blurred anyway: half resolution is plenty
-    renderer.transmissionResolutionScale = 0.5;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     host.appendChild(renderer.domElement);
     renderer.domElement.setAttribute("aria-hidden", "true");
     renderer.domElement.style.cssText = "display:block;width:100%;height:100%";
-    // the scene draws the horizon itself now (so the glass refracts it): the CSS copy steps aside
+    // the scene draws the horizon itself: the CSS copy steps aside
     document.documentElement.dataset.scene = "on";
 
     const scene = new THREE.Scene();
@@ -458,16 +381,10 @@ export default function ChromeScene() {
 
     const sky = backdrop();
     scene.add(sky.mesh);
-    // any render target other than the screen (or the bloom buffer) is three's refraction pass
-    let screenTarget: THREE.WebGLRenderTarget | null = null;
-    sky.mesh.onBeforeRender = (r) => {
-      const t = r.getRenderTarget();
-      sky.uniforms.uInGlass.value = t !== null && t !== screenTarget ? 1 : 0;
-    };
 
     // a soft pool of coloured light behind the subject: the chapter's colour grade
     const haloTex = haloTexture();
-    // depth-tested, so it glows around the object rather than over the glass
+    // depth-tested, so it glows around the object rather than over it
     const haloMat = new THREE.SpriteMaterial({ map: haloTex, transparent: true, depthWrite: false });
     const halo = new THREE.Sprite(haloMat);
     halo.scale.setScalar(16);
@@ -486,16 +403,19 @@ export default function ChromeScene() {
       uMouseStrength: { value: 0 },
     };
     const objects = new Map<string, Obj>();
-    const allMats = new Set<THREE.MeshPhysicalMaterial>();
     let pal: Palette = PALETTE.dark;
-    const addObject = (key: string, geo: THREE.BufferGeometry, isHero = false) => {
+    // molten rock: every shape is the husk's stone; between sections it melts into glowing lava
+    // and the lava cools into the next one (./rock.ts)
+    const rockMats = new Set<RockMat>();
+    const addObject = (key: string, geo: THREE.BufferGeometry, isHero = false, pale = 0) => {
       if (!geo.attributes.meltDir) radialMeltDirs(geo);
       const melt = { value: 0 };
       const wobble = { value: 0 };
-      const mat = liquidMaterial(shared, melt, wobble, pal.metal, 1.55);
-      glassReady(mat);
-      setGlass(mat, quality.glass ? 1 : 0);
-      allMats.add(mat);
+      const rock = rockShapeMaterial({ noise: NOISE, vertex: VERT_NORMAL }, { ...shared, uMelt: melt, uWobble: wobble }, pale);
+      rock.setTheme(pal === PALETTE.light);
+      rock.setLow(!quality.detail);
+      rockMats.add(rock);
+      const mat: THREE.Material = rock.mat;
       const mesh = new THREE.Mesh(geo, mat);
       mesh.visible = false;
       mesh.frustumCulled = false;
@@ -513,17 +433,22 @@ export default function ChromeScene() {
     blobGeo.computeVertexNormals();
     const standIn = addObject("__blob", blobGeo);
 
-    // the liquid sheet inside the orb: a mirror-finish surface the glass refracts (shown with glass only)
-    let inner: THREE.Mesh | null = null;
+    // the hero: Ember Husk. Closed, it hides the liquid blob in its hollow; bursting open it lets
+    // the blob out, which then forms the next section's shape (and the reverse on the way back)
+    const husk = createHusk(
+      tier.level === 0 ? { crosses: 30, debris: 28, beads: 4 } : { crosses: 52, debris: 54, beads: 5 },
+      false, // full detail, as the original always draws it
+    );
+    husk.group.scale.setScalar(HUSK_SCALE);
+    husk.group.visible = false;
+    pivot.add(husk.group);
+    // drawn as the original draws it: its own buffer, glow and tone mapping, over the scene
+    const huskPost = createHuskPost(renderer, { glsl: BACKDROP_GLSL, uniforms: sky.uniforms });
+    huskPost.setAlphaGlow(posterMode);
 
-    // bubbles: small glass spheres orbiting the object
-    const bubbleMat = new THREE.MeshPhysicalMaterial({ color: pal.metal, metalness: 1, roughness: 0.05, clearcoat: 1, envMapIntensity: 1.3 });
-    glassReady(bubbleMat);
-    setGlass(bubbleMat, quality.glass ? 1 : 0);
-    allMats.add(bubbleMat);
-    const applyGlass = (g: number) => allMats.forEach((m) => setGlass(m, g));
-    const bubbleGeo = new THREE.SphereGeometry(1, 32, 16);
-    const bubbles = new THREE.InstancedMesh(bubbleGeo, bubbleMat, tier.bubbles);
+    // rock pebbles orbiting the shapes
+    const pebbles = createPebbles(tier.bubbles);
+    const bubbles = pebbles.mesh;
     bubbles.frustumCulled = false;
     scene.add(bubbles); // follows the pivot's position, but not its scale (they fly in during the opening)
     const xAxis = new THREE.Vector3(1, 0, 0);
@@ -547,14 +472,11 @@ export default function ChromeScene() {
     const bs = new THREE.Vector3();
     const bp = new THREE.Vector3();
 
-    // ---- environment + theme
-    let envTex: THREE.Texture | null = null;
+    // ---- theme
     const col = {
       bg: new THREE.Color(),
       tintAI: new THREE.Color(),
       tintGrowth: new THREE.Color(),
-      metal: new THREE.Color(),
-      metalAI: new THREE.Color(),
       haloN: new THREE.Color(),
       haloAI: new THREE.Color(),
       haloGrowth: new THREE.Color(),
@@ -564,14 +486,10 @@ export default function ChromeScene() {
       pal = light ? PALETTE.light : PALETTE.dark;
       (Object.keys(col) as (keyof typeof col)[]).forEach((k) => col[k].set(pal[k]));
       renderer.setClearColor(col.bg, 1);
-      envTex?.dispose();
-      envTex = studioEnv(renderer, light);
-      scene.environment = envTex;
-      allMats.forEach((m) => {
-        m.attenuationColor.set(pal.glassTint);
-        m.attenuationDistance = pal.glassDepth;
-      });
       sky.uniforms.uAmt.value = pal.horizon;
+      husk.setTheme(light);
+      rockMats.forEach((r) => r.setTheme(light));
+      pebbles.setTheme(light);
       haloMat.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
       haloMat.needsUpdate = true;
     };
@@ -604,7 +522,7 @@ export default function ChromeScene() {
         }),
       );
       post = { rt, bloom, copy };
-      screenTarget = rt;
+
     }
     const resizePost = () => {
       if (!post) return;
@@ -613,35 +531,38 @@ export default function ChromeScene() {
       post.bloom.setSize(bufferSize.x / 2, bufferSize.y / 2);
     };
 
-    // ---- frame-rate governor: after the opening, average 90 frames at a time; under ~32 fps,
-    // give up the next most expensive thing (never steps back up, so it can't oscillate)
-    const perf = { wait: 2.5, t: 0, n: 0 };
+    // ---- frame-rate governor: after the opening, average 50 frames at a time; under ~32 fps,
+    // give up the next most expensive thing (never steps back up, so it can't oscillate). The
+    // hero doesn't count, so it first judges the sections after it: it has to decide quickly.
+    const perf = { wait: 1, t: 0, n: 0 };
     const stepDown = () => {
       if (quality.bloom) quality.bloom = false;
       else if (quality.dpr > 1) {
         quality.dpr = 1;
         renderer.setPixelRatio(1);
         resizePost();
-      } else if (quality.glass) {
-        quality.glass = false;
-        applyGlass(0);
+      } else if (quality.detail) {
+        // the shapes' stone gets simpler grain (the hero husk keeps its full detail)
+        quality.detail = false;
+        rockMats.forEach((r) => r.setLow(true));
       }
       film.quality = Math.max(0, film.quality - 1);
+      markQuality();
     };
-    // (frames between sections don't count: a brief heavy hand-over shouldn't cost the formed shapes their glass)
+    // (frames between sections don't count: a brief heavy hand-over shouldn't cost the formed shapes their detail)
     let busy = false;
     const govern = (rawDt: number) => {
-      if (forceHQ || !(quality.glass || quality.bloom || quality.dpr > 1) || film.intro < 1 || busy) return;
+      if (forceHQ || !(quality.detail || quality.bloom || quality.dpr > 1) || film.intro < 1 || busy) return;
       if (perf.wait > 0) {
         perf.wait -= rawDt;
         return;
       }
       perf.t += rawDt;
       perf.n += 1;
-      if (perf.n < 90) return;
+      if (perf.n < 50) return;
       if (perf.t / perf.n > 1 / 32) {
         stepDown();
-        perf.wait = 1.5;
+        perf.wait = 0.75;
       }
       perf.t = 0;
       perf.n = 0;
@@ -686,7 +607,7 @@ export default function ChromeScene() {
       geo.deleteAttribute("uv");
       geo = new TessellateModifier(0.14, 7).modify(geo);
       textHalfWidth.set(key, (w * s) / 2);
-      addObject(key, geo);
+      addObject(key, geo, false, 1); // the numbers' stone is paler, so they read
       pair = "";
     };
     const mergeParts = (parts: THREE.BufferGeometry[]) => {
@@ -723,21 +644,17 @@ export default function ChromeScene() {
     );
 
     // compile every shader variant now, behind the opening, so nothing stutters on first use
-    // (glass, and the chrome fallback the frame-rate governor may switch to)
+    // (both levels of stone detail: the governor may step down to the simpler one)
     const prewarm = () => {
       const list = [...objects.values()];
       const was = list.map((o) => o.mesh.visible);
       list.forEach((o) => (o.mesh.visible = true));
-      if (inner) inner.visible = true;
-      if (quality.glass) {
-        applyGlass(1);
-        renderer.compile(scene, camera);
-      }
-      applyGlass(0);
+      rockMats.forEach((r) => r.setLow(quality.detail));
       renderer.compile(scene, camera);
-      applyGlass(quality.glass ? 1 : 0);
+      rockMats.forEach((r) => r.setLow(!quality.detail));
+      renderer.compile(scene, camera);
       list.forEach((o, i) => (o.mesh.visible = was[i]));
-      if (inner) inner.visible = false;
+      husk.prewarm(() => huskPost.render(scene, camera, false));
     };
 
     // ---- load the chrome shapes + camera shots
@@ -764,20 +681,12 @@ export default function ChromeScene() {
           }
           const mesh = o as THREE.Mesh;
           if (!mesh.isMesh) return;
+          // the old glass orb and its inner liquid: no section uses them now (its camera shot stays)
+          if (mesh.name === ORB || mesh.name === "Globe_Liquid") return;
           const g = (mesh.geometry as THREE.BufferGeometry).clone();
           g.applyMatrix4(mesh.matrixWorld);
           if (!g.attributes.normal) g.computeVertexNormals();
-          if (mesh.name === "Globe_Liquid") {
-            inner = new THREE.Mesh(
-              g,
-              new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1, roughness: 0.05, envMapIntensity: 1.4, side: THREE.DoubleSide }),
-            );
-            inner.visible = false;
-            inner.frustumCulled = false;
-            pivot.add(inner);
-            return;
-          }
-          if (mesh.name.startsWith("Shape_")) addObject(mesh.name, g, mesh.name === HERO);
+          if (mesh.name.startsWith("Shape_")) addObject(mesh.name, g);
         });
         draco.dispose();
         prewarm();
@@ -839,6 +748,7 @@ export default function ChromeScene() {
 
 
     const frameOf = (s: Stop): Frame => {
+      if (s.shape === HERO) return narrow ? HUSK_FRAME_NARROW : HUSK_FRAME;
       const f = s.frame;
       if (f === FRAMES.number) {
         const hw = textHalfWidth.get(s.shape) ?? 2.3;
@@ -852,7 +762,8 @@ export default function ChromeScene() {
     const shotA = new THREE.Vector3();
     const shotB = new THREE.Vector3();
     const shotAt = (s: Stop, h: number, out: THREE.Vector3) => {
-      const sh = s.shape.startsWith("text:") ? FRONT_SHOT : shots.get(s.shape) ?? FRONT_SHOT;
+      // the husk keeps the orb's camera shot (level, straight on)
+      const sh = s.shape.startsWith("text:") ? FRONT_SHOT : shots.get(s.shape === HERO ? ORB : s.shape) ?? FRONT_SHOT;
       shotA.copy(sh.in);
       shotB.copy(sh.out);
       const len = lerp(shotA.length(), shotB.length(), h);
@@ -967,7 +878,7 @@ export default function ChromeScene() {
     let lastY = window.scrollY;
     let vel = 0;
     let spin = 0;
-    const cur = { dir: new THREE.Vector3(0, 0.03, 1).normalize(), dist: 7.6, fx: 0, fy: -0.04, roll: 0, grade: 0 };
+    const cur = { dir: new THREE.Vector3(0, 0.03, 1).normalize(), dist: 7.6, fx: 0, fy: -0.04, roll: 0, grade: 0, fov: SCENE_FOV };
     const tgtDir = new THREE.Vector3();
     const dirB = new THREE.Vector3();
     const look = new THREE.Vector3();
@@ -975,7 +886,6 @@ export default function ChromeScene() {
     const bg = new THREE.Color();
     const srgb = { r: 0, g: 0, b: 0 };
     const haloCol = new THREE.Color();
-    const metal = new THREE.Color();
 
     const frame = () => {
       const rawDt = clock.getDelta();
@@ -1021,6 +931,7 @@ export default function ChromeScene() {
         shape = sa.shape;
         melt = changing ? smooth(mix / 0.5) : 0;
       }
+      const handMelt = melt;
       let show = objects.get(shape);
       // data-shape="none": the section has its own visual; the blob shrinks away into it and
       // grows back out of it on the way to the next shape
@@ -1029,28 +940,34 @@ export default function ChromeScene() {
         vanish = !changing ? 1 : mix >= 0.5 ? smooth((mix - 0.5) / 0.5) : 1 - smooth(mix / 0.5);
       }
       if (!show) {
-        show = standIn; // still loading (or "none"): the liquid blob stands in
+        show = standIn; // still loading, "none" or the husk: the liquid blob stands in
         melt = 1;
       }
       const introMelt = reduce ? 0 : 1 - smooth(clamp01((intro - 0.3) / 0.6));
       melt = Math.max(melt, scatter, show.hero ? introMelt : 0);
+      // the husk: how far it has burst open (handing over, forming in the opening, leaving the page)
+      const heroNow = shape === HERO;
+      const open = heroNow ? Math.max(handMelt, scatter, introMelt) : 1;
       const key = `${show.mesh.id}`;
       if (key !== pair) {
         objects.forEach((o) => (o.mesh.visible = false));
         pair = key;
       }
-      show.mesh.visible = true;
+      // the blob is the husk's liquid core: hidden inside it while closed, growing out as it opens
+      standIn.mesh.scale.setScalar(heroNow ? Math.max(0.001, smooth(open)) : 1);
+      show.mesh.visible = !heroNow || open > 0.002;
       show.melt.value = melt;
       show.wobble.value = show.hero && !reduce ? 1 - melt : 0;
-      // the shared liquid is silver chrome: glass gives way as a shape melts and returns as it forms
-      // (also keeps the half-melted blob, which fills much of the screen, cheap to draw)
-      setGlass(show.mat, quality.glass ? 1 - smooth(clamp01((melt - 0.35) / 0.5)) : 0);
-      busy = changing || scatter > 0.01;
-      // the liquid inside the orb shrinks away as the orb melts
-      if (inner) {
-        inner.visible = show.hero && quality.glass && melt < 0.98;
-        inner.scale.setScalar(Math.max(0.001, 1 - melt));
+      // the governor skips hand-overs, and the hero (it keeps its full quality, so it mustn't cost
+      // the rest theirs)
+      busy = changing || scatter > 0.01 || heroNow;
+      // the hero always draws at the device's own resolution; the frame-rate steps apply elsewhere
+      const wantDpr = sa.shape === HERO && (!changing || mix < 0.5) ? tierDpr : quality.dpr;
+      if (Math.abs(renderer.getPixelRatio() - wantDpr) > 1e-3) {
+        renderer.setPixelRatio(wantDpr);
+        resizePost();
       }
+      const openNow = open;
 
 
       // camera: drift through this shape's shot, or arc to the next one
@@ -1076,7 +993,21 @@ export default function ChromeScene() {
         tRoll = 0;
         tGrade = gradeOf(sa);
       }
+      // the hero's own lens and its pool of light, easing out (and back) through the hand-over
+      const fovOf = (s: Stop) => (s.shape === HERO ? HUSK_FOV : SCENE_FOV);
+      const heroP = changing ? lerp(sa.shape === HERO ? 1 : 0, sb.shape === HERO ? 1 : 0, smooth(mix)) : sa.shape === HERO ? 1 : 0;
+      const tFov = changing ? lerp(fovOf(sa), fovOf(sb), smooth(mix)) : fovOf(sa);
+      sky.uniforms.uPool.value = heroP * (pal === PALETTE.light ? 0.3 : 1);
+      sky.uniforms.uAspect.value = camera.aspect;
+      // and the page's vignette lifts off the hero (written only when it changes)
+      const heroOn = heroP > 0.5;
+      if (heroOn !== ("heroOn" in document.documentElement.dataset)) {
+        if (heroOn) document.documentElement.dataset.heroOn = "";
+        else delete document.documentElement.dataset.heroOn;
+      }
       const L = snap ? 1000 : 4;
+      cur.fov = damp(cur.fov, tFov, L, dt);
+      camera.fov = cur.fov;
       cur.dir.lerp(tgtDir, 1 - Math.exp(-L * dt)).normalize();
       cur.dist = damp(cur.dist, tDist, L, dt);
       cur.fx = damp(cur.fx, tFx, L, dt);
@@ -1125,15 +1056,17 @@ export default function ChromeScene() {
       }
       const textShape = (changing && mix >= 0.5 ? sb : sa).shape.startsWith("text:");
       pivot.position.copy(fly);
-      const sway = textShape ? 0.05 : isHero ? 0.38 : 0.14;
+      // (the husk turns and rocks on its own rig, so the pivot only sways it a little)
+      const sway = textShape ? 0.05 : isHero ? 0.38 : heroNow ? 0 : 0.14;
       if (!dragging) dragYaw = damp(dragYaw, 0, 2.4, dt);
       pivot.rotation.set(reduce || !isHero ? 0 : Math.sin(idle * 0.19) * 0.08, spin + dragYaw + (reduce ? 0 : Math.sin(idle * 0.25) * sway), nose);
       const grow = reduce ? 1 : smooth(clamp01((intro - 0.05) / 0.75));
       pivot.scale.setScalar(Math.max(0.001, grow * (1 - scatter * 0.35) * (1 - vanish)));
       pivot.visible = vanish < 0.999;
 
-      // bubbles orbit the object; in the opening they fly in from all around
-      const bubbleAmt = (isHero ? 1 : 0.65) * (1 - scatter) * (1 - vanish);
+      // bubbles orbit the object; in the opening they fly in from all around (the husk brings its
+      // own swarm, so around it they show only while the liquid core is out)
+      const bubbleAmt = (isHero ? 1 : openNow < 1 ? 0.65 * smooth(openNow) : 0.65) * (1 - scatter) * (1 - vanish);
       bubbles.visible = vanish < 0.999;
       bubbles.position.copy(pivot.position);
       bubbleData.forEach((b, i) => {
@@ -1147,17 +1080,17 @@ export default function ChromeScene() {
       });
       bubbles.instanceMatrix.needsUpdate = true;
 
-      // colour grade: background, the light behind the subject, and a hint of blue in the metal
+      // colour grade: background and the light behind the subject
       const g = Math.abs(cur.grade);
       bg.copy(col.bg).lerp(cur.grade < 0 ? col.tintAI : col.tintGrowth, g * 0.85);
-      renderer.setClearColor(bg, 1);
+      renderer.setClearColor(bg, posterMode ? 0 : 1);
+      if (posterMode) sky.mesh.visible = halo.visible = false;
       bg.getRGB(srgb, THREE.SRGBColorSpace);
       sky.uniforms.uBg.value.set(srgb.r, srgb.g, srgb.b);
-      metal.copy(col.metal).lerp(col.metalAI, cur.grade < 0 ? g * 0.6 : 0);
-      allMats.forEach((m) => m.color.copy(metal));
       haloCol.copy(col.haloN).lerp(cur.grade < 0 ? col.haloAI : col.haloGrowth, g);
       haloMat.color.copy(haloCol);
-      haloMat.opacity = pal.haloOpacity * (0.55 + 0.45 * g) * (reduce ? 1 : intro);
+      haloMat.opacity = pal.haloOpacity * (0.55 + 0.45 * g) * (reduce ? 1 : intro) * (1 - heroP);
+      halo.visible = heroP < 0.999; // (the husk has its own pool of light; no halo behind it)
       halo.position.copy(cur.dir).multiplyScalar(-3.8);
 
       // the cursor presses into the liquid
@@ -1169,9 +1102,25 @@ export default function ChromeScene() {
           inv.copy(pivot.matrixWorld).invert();
           shared.uMouse.value.copy(hit.applyMatrix4(inv));
         }
-        shared.uMouseStrength.value = damp(shared.uMouseStrength.value, 1, 6, dt);
+        // (cold stone doesn't give: in molten rock only the lava dents)
+        shared.uMouseStrength.value = damp(shared.uMouseStrength.value, melt, 6, dt);
       } else {
         shared.uMouseStrength.value = damp(shared.uMouseStrength.value, 0, 4, dt);
+      }
+
+      // the husk: its idle drift, the cursor shoving its pieces, and the burst
+      if (heroNow || husk.group.visible || openNow < 1) {
+        camera.updateMatrixWorld();
+        pivot.updateMatrixWorld();
+        husk.update({
+          t: idle,
+          dt,
+          open: openNow,
+          pointer: fine && pointerActive && openNow < 0.05 ? ndc : null,
+          camera,
+          aspect: camera.aspect,
+          reduce,
+        });
       }
 
       film.mix = mix;
@@ -1190,7 +1139,14 @@ export default function ChromeScene() {
       rested = settled ? rested + 1 : 0;
       if (rested > 4) return;
 
-      const glow = post && quality.bloom ? pal.bloom : 0;
+      // the settled hero is the husk alone over the backdrop: one pipeline draws both, as the
+      // original component does, and the scene's own pass is skipped
+      if (!posterMode && sa.shape === HERO && !changing && openNow < 0.001 && scatter < 0.001) {
+        huskPost.render(scene, camera, true, true);
+        return;
+      }
+      // (on the hero the husk brings its own glow; the scene's would only blur the backdrop)
+      const glow = post && quality.bloom && !(sa.shape === HERO && !changing) ? pal.bloom : 0;
       if (post && glow > 0) {
         post.bloom.strength = glow;
         renderer.setRenderTarget(post.rt);
@@ -1201,6 +1157,8 @@ export default function ChromeScene() {
       } else {
         renderer.render(scene, camera);
       }
+      // the husk, through its own pipeline, over the finished frame
+      if (husk.group.visible) huskPost.render(scene, camera);
     };
     renderer.setAnimationLoop(frame);
 
@@ -1231,13 +1189,9 @@ export default function ChromeScene() {
         o.mesh.geometry.dispose();
         o.mat.dispose();
       });
-      bubbleGeo.dispose();
-      bubbleMat.dispose();
-      if (inner) {
-        inner.geometry.dispose();
-        (inner.material as THREE.Material).dispose();
-      }
-      envTex?.dispose();
+      husk.dispose();
+      huskPost.dispose();
+      pebbles.dispose();
       sky.mesh.geometry.dispose();
       (sky.mesh.material as THREE.Material).dispose();
       if (post) {
@@ -1251,6 +1205,8 @@ export default function ChromeScene() {
       renderer.dispose();
       renderer.domElement.remove();
       delete document.documentElement.dataset.scene;
+      delete document.documentElement.dataset.heroOn;
+      delete document.documentElement.dataset.sceneQuality;
     };
   }, []);
 

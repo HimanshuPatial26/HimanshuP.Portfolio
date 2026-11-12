@@ -167,6 +167,11 @@ body {
 /* ------------------------------------------------------------------ film finish */
 .film-vignette {
   background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 45%, var(--vignette) 100%);
+  transition: opacity 0.8s ease;
+}
+/* the hero is Ember Husk as its library draws it, with no vignette over it (the scene sets this) */
+:root[data-hero-on] .film-vignette {
+  opacity: 0;
 }
 /* micro copy: tiny uppercase Syne blocks, tight leading (from the reference) */
 .micro {

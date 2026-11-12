@@ -7,9 +7,9 @@ export const alt = "Himanshu Patial, AI & Growth Product Manager";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// the hero's glass orb, rendered offline in Blender (a transparent PNG); read once at module
+// the hero's husk, captured from the live scene on a transparent canvas; read once at module
 // scope so the image stays static (generated at build time)
-const orbSrc = `data:image/png;base64,${await readFile(join(process.cwd(), "public/posters/orb.png"), "base64")}`;
+const orbSrc = `data:image/png;base64,${await readFile(join(process.cwd(), "public/posters/husk.png"), "base64")}`;
 
 export default async function Image() {
   return new ImageResponse(

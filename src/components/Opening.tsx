@@ -12,7 +12,7 @@ type Stage = { scene: boolean; particles: boolean; type: boolean; frame: boolean
 
 const STEPS: { key: keyof Stage; label: string }[] = [
   { key: "scene", label: "Fetching the 3D scene" },
-  { key: "particles", label: "Shaping the glass" },
+  { key: "particles", label: "Cracking the rock" },
   { key: "type", label: "Setting the type" },
   { key: "frame", label: "Framing the first shot" },
 ];
@@ -219,9 +219,9 @@ export default function Opening() {
       {/* the boot readout */}
       <div ref={coverRef} className="opening-cover pointer-events-auto absolute inset-0 bg-bg">
         <div className="film-horizon absolute inset-0" aria-hidden="true" />
-        {/* the hero's glass orb, rendered offline in Blender (the live one forms from droplets after this) */}
+        {/* a still of the hero's husk (the live one flies together after this) */}
         <div ref={posterRef} className="absolute inset-0 opacity-0" aria-hidden="true">
-          <Image src="/posters/orb.png" alt="" fill sizes="100vw" className="object-contain" />
+          <Image src="/posters/husk.png" alt="" fill sizes="100vw" className="object-contain" />
         </div>
         <div ref={readoutRef} className="relative flex h-full flex-col justify-between p-6 sm:p-10">
           <div className="flex flex-col gap-1.5 font-mono text-[11px] tracking-[0.25em] text-faint uppercase">

@@ -24,14 +24,14 @@ export default function Hero() {
   const fade = `transition-all duration-1000 ease-out ${revealed ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`;
 
   return (
-    <section id="top" data-shape="Shape_Globe" data-pose="center" className="relative flex h-[100svh] min-h-[640px] flex-col overflow-hidden">
+    <section id="top" data-shape="husk" data-pose="center" className="relative flex h-[100svh] min-h-[640px] flex-col overflow-hidden">
       <h1 className="sr-only">
         {profile.name}, {profile.title}
       </h1>
 
-      {/* where the live 3D can't run (no WebGL), the Blender render of the orb stands in */}
+      {/* where the live 3D can't run (no WebGL), a still of the husk stands in */}
       <div className="scene-fallback pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <Image src="/posters/orb.png" alt="" fill sizes="100vw" className="object-contain" />
+        <Image src="/posters/husk.png" alt="" fill sizes="100vw" className="object-contain" />
       </div>
 
       {/* micro header */}
