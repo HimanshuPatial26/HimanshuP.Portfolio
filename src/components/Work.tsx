@@ -23,6 +23,12 @@ function Tags({ tracks }: { tracks: Track[] }) {
   );
 }
 
+/** The chrome object behind the section: a spark for AI work, an arrow for growth, both for both. */
+function shapeOf(tracks: Track[]) {
+  if (tracks.length > 1) return "Shape_SparkArrow";
+  return tracks.includes("AI") ? "Shape_Spark" : "Shape_Arrow";
+}
+
 /**
  * Pinned story: on desktop the active case study's name and result stay pinned
  * on the left and swap as its details scroll past on the right.
@@ -30,6 +36,23 @@ function Tags({ tracks }: { tracks: Track[] }) {
 export default function Work() {
   const [active, setActive] = useState(0);
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const sectionRef = useRef<HTMLElement>(null);
+  const firstShape = useRef(true);
+  const shape = shapeOf(caseStudies[active].tracks);
+
+  // When the case on screen changes track, the chrome melts and re-forms as the other shape.
+  // Away from this section (scrolling back up into Impact, say) the swap is quiet, so it
+  // doesn't melt whatever another section is showing.
+  useEffect(() => {
+    if (firstShape.current) {
+      firstShape.current = false;
+      return;
+    }
+    const r = sectionRef.current?.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const here = !!r && r.top < vh * 0.3 && r.bottom > vh * 0.8;
+    window.dispatchEvent(new CustomEvent("scene:reshape", { detail: { quiet: !here } }));
+  }, [shape]);
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -59,8 +82,9 @@ export default function Work() {
 
   return (
     <section
+      ref={sectionRef}
       id="work"
-      data-shape="Shape_Phone"
+      data-shape={shape}
       data-pose="deep"
       data-grade={grade}
       data-chapter="Work"

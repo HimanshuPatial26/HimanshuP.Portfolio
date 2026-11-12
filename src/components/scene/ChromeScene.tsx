@@ -953,11 +953,12 @@ export default function ChromeScene() {
     };
     window.addEventListener("scene:spin", onSpin);
 
-    // ---- a section changed what it shows in place (the Impact currency switch): melt the
-    // object, re-read the sections, re-form as the new one
+    // ---- a section changed what it shows in place (the Impact currency switch, Work's spark
+    // and arrow): melt the object, re-read the sections, re-form as the new one. A quiet
+    // reshape (the section isn't the one on screen) only re-reads the sections.
     let reshapeTimer = 0;
-    const onReshape = () => {
-      if (reduce) return measure();
+    const onReshape = (e: Event) => {
+      if (reduce || (e as CustomEvent<{ quiet?: boolean } | null>).detail?.quiet) return measure();
       scatterTarget = 1;
       window.clearTimeout(reshapeTimer);
       reshapeTimer = window.setTimeout(() => {

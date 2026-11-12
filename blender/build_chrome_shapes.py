@@ -15,7 +15,10 @@ Objects (names are read by the site's data-shape attributes; keep them stable):
   Globe_Liquid    hero      the wavy liquid sheet inside the orb
   Shape_Monogram  about     extruded, bevelled "hp"
   Shape_Curve     case      a rising growth curve as a thick tube with data points
-  Shape_Phone     work      a rounded phone slab with raised app cards
+  Shape_Phone     case      a rounded phone slab with raised app cards
+  Shape_Spark     work      a four-point AI sparkle with a small one beside it (AI cases)
+  Shape_Arrow     work      a chunky arrow pointing up and right (growth cases)
+  Shape_SparkArrow work     the arrow with a sparkle above it (a case that is both)
   Shape_Stairs    journey   four rounded steps with a ball on the top one
   Shape_Plane     contact   a thick folded paper plane with a trail of drops
 Also exports the ShotIn_/ShotOut_ camera empties: the camera path.
@@ -187,6 +190,112 @@ phone = join(parts, "Shape_Phone")
 phone.rotation_euler = (math.radians(8), 0, math.radians(-22))
 finish(phone, 3.9)
 
+# --------------------------------------------------------------- spark and arrow (work)
+# Selected Work shows the spark for an AI case and the arrow for a growth case, and melts
+# from one to the other as the reader moves between cases; a case that is both gets the
+# arrow with a spark. They are flat outlines, extruded and bevelled like the monogram.
+
+
+def flat(outlines, extrude, bevel, name):
+    """Filled 2D outlines (x, y), extruded both ways along z and bevelled. The bevel is a
+    mesh bevel that clamps where it would overlap: a curve bevel folds over itself at the
+    spark's sharp tips and leaves them ragged."""
+    cu = bpy.data.curves.new(name, "CURVE")
+    cu.dimensions = "2D"
+    cu.fill_mode = "BOTH"
+    cu.extrude = extrude
+    for pts in outlines:
+        sp = cu.splines.new("POLY")
+        sp.points.add(len(pts) - 1)
+        for p, (x, y) in zip(sp.points, pts):
+            p.co = (x, y, 0, 1)
+        sp.use_cyclic_u = True
+    ob = bpy.data.objects.new(name, cu)
+    col.objects.link(ob)
+    ob = to_mesh(ob)
+    select_only(ob)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.remove_doubles(threshold=1e-4)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bev = ob.modifiers.new("Bevel", "BEVEL")
+    bev.width = bevel
+    bev.segments = 5
+    bev.limit_method = "ANGLE"
+    bev.angle_limit = math.radians(40)
+    bev.use_clamp_overlap = True
+    apply_all(ob)
+    return ob
+
+
+def spark_outline(r, cx=0.0, cy=0.0, tall=1.12, pinch=0.3, steps=16):
+    """A four-point sparkle: four tips joined by edges that curve in toward the centre."""
+    tips = [(r, 0), (0, r * tall), (-r, 0), (0, -r * tall)]
+    pts = []
+    for i in range(4):
+        a, b = tips[i], tips[(i + 1) % 4]
+        c = ((a[0] + b[0]) * pinch, (a[1] + b[1]) * pinch)
+        for s in range(steps):
+            t = s / steps
+            x = (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0]
+            y = (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]
+            pts.append((cx + x, cy + y))
+    return pts
+
+
+def fillet(pts, r, steps=6):
+    """Round every corner of a closed polygon (convex or concave) with radius r."""
+    out = []
+    n = len(pts)
+    for i in range(n):
+        p0, p1, p2 = Vector(pts[i - 1]), Vector(pts[i]), Vector(pts[(i + 1) % n])
+        d0, d2 = (p0 - p1).normalized(), (p2 - p1).normalized()
+        ang = d0.angle(d2)
+        if ang < 1e-3 or abs(ang - math.pi) < 1e-3:
+            out.append(p1)
+            continue
+        t = min(r / math.tan(ang / 2), (p0 - p1).length * 0.45, (p2 - p1).length * 0.45)
+        rr = t * math.tan(ang / 2)
+        a, b = p1 + d0 * t, p1 + d2 * t
+        c = p1 + (d0 + d2).normalized() * (rr / math.sin(ang / 2))
+        a0 = math.atan2(a.y - c.y, a.x - c.x)
+        a1 = math.atan2(b.y - c.y, b.x - c.x)
+        da = (a1 - a0 + math.pi) % (2 * math.pi) - math.pi
+        out += [Vector((c.x + rr * math.cos(a0 + da * s / steps), c.y + rr * math.sin(a0 + da * s / steps))) for s in range(steps + 1)]
+    return [(v.x, v.y) for v in out]
+
+
+def arrow_outline(angle):
+    """A block arrow, tail to tip about 4.4 long, turned to point `angle` degrees up from +x."""
+    pts = [(-2.2, -0.5), (0.45, -0.5), (0.45, -1.25), (2.2, 0), (0.45, 1.25), (0.45, 0.5), (-2.2, 0.5)]
+    a = math.radians(angle)
+    turned = [(x * math.cos(a) - y * math.sin(a), x * math.sin(a) + y * math.cos(a)) for x, y in pts]
+    return fillet(turned, 0.16)
+
+
+def stand_up(ob, tilt=0.0, yaw=-10.0):
+    """Stand a flat shape up to face the camera, turned a little so its depth shows."""
+    ob.rotation_euler = (math.radians(90), math.radians(tilt), math.radians(yaw))
+    return ob
+
+
+DEPTH = (0.5, 0.16)  # extrude, bevel: as chunky as the monogram
+
+big = flat([spark_outline(1.9)], *DEPTH, "spark")
+small = flat([spark_outline(0.62, 1.55, 1.62)], *DEPTH, "spark_small")
+small.location.z = 0.25  # a little nearer the camera once stood up
+spark = stand_up(join([big, small], "Shape_Spark"), tilt=8)
+finish(spark, 4.0)
+
+arrow = stand_up(flat([arrow_outline(38)], *DEPTH, "Shape_Arrow"))
+finish(arrow, 4.2)
+
+body = flat([arrow_outline(38)], *DEPTH, "arrow_body")
+glint = flat([spark_outline(0.75, -1.45, 1.55)], *DEPTH, "arrow_spark")
+glint.location.z = 0.25
+spark_arrow = stand_up(join([body, glint], "Shape_SparkArrow"))
+finish(spark_arrow, 4.2)
+
 # --------------------------------------------------------------- stairs (journey)
 parts = []
 for k in range(4):
@@ -240,6 +349,10 @@ shots = {
     "Shape_Monogram": (sph(-26, 6, 7.0), sph(24, -4, 6.8)),
     "Shape_Curve": (sph(-38, -6, 7.2), sph(22, 28, 6.6)),
     "Shape_Phone": (sph(40, 8, 7.0), sph(-36, 4, 6.6)),
+    # the three Work shapes share one shot, so the camera holds still while they melt into each other
+    "Shape_Spark": (sph(26, 6, 7.0), sph(-22, 2, 6.7)),
+    "Shape_Arrow": (sph(26, 6, 7.0), sph(-22, 2, 6.7)),
+    "Shape_SparkArrow": (sph(26, 6, 7.0), sph(-22, 2, 6.7)),
     "Shape_Stairs": (sph(30, 2, 7.4), sph(-20, 22, 6.8)),
     "Shape_Plane": (sph(-55, 10, 7.6), sph(-15, 4, 6.6)),
 }
