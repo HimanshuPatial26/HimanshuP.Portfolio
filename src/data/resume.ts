@@ -119,6 +119,7 @@ export const caseStudies: CaseStudy[] = [
       "Built a tool that reviews calls automatically and surfaces lead-quality insights so leaders can redirect reps and refine campaigns.",
     result: "+8–10% quality-team productivity",
     resultIsMetric: true,
+    figure: "/figures/call-analysis.html",
   },
   {
     id: "ai-convert",
@@ -132,6 +133,7 @@ export const caseStudies: CaseStudy[] = [
       "Launched an engine that reacts to user activity and triggers the right conversion nudge at the right moment.",
     result: "₹4M (~US $50K) in monthly revenue",
     resultIsMetric: true,
+    figure: "/figures/ai-convert.html",
   },
   {
     id: "payment-recovery",
@@ -144,6 +146,7 @@ export const caseStudies: CaseStudy[] = [
       "Designed WhatsApp journeys that bring users back to finish a payment that failed or was dropped.",
     result: "+10–15% successful transactions",
     resultIsMetric: true,
+    figure: "/figures/payment-recovery.html",
   },
   {
     id: "crm-lms",
