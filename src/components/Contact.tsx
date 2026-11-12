@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { Chip, Roll } from "@/components/Buttons";
 import Magnet from "@/components/reactbits/Magnet";
 import Scribble from "@/components/Scribble";
 import { DotsTag } from "@/components/Tags";
@@ -68,38 +69,27 @@ export default function Contact() {
             <a
               href={`mailto:${profile.email}`}
               onClick={() => window.dispatchEvent(new Event("plane:launch"))}
-              className="cursor-target inline-flex items-center justify-center rounded-full bg-text px-8 py-4 text-base font-medium text-bg transition-opacity hover:opacity-90"
+              className="btn btn-primary btn-lg btn-plain cursor-target"
             >
-              {profile.email}
+              <Roll text={profile.email} />
+              <Chip dir="ne" />
             </a>
           </Magnet>
-          {/* copy → copied morph, from Uiverse.io by fabiodevbr (MIT) */}
+          {/* copy → copied: the dot floods blue and "Copied" rolls in */}
           <button
             type="button"
             onClick={copyEmail}
-            data-state={copied ? "copied" : "idle"}
+            data-lit={copied || undefined}
             aria-label={copied ? "Email copied" : "Copy email address"}
-            className="btn-copy cursor-target"
+            className="btn btn-line cursor-target"
           >
-            <span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden="true">
-                <rect x="8" y="8" width="12" height="12" rx="2.5" />
-                <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" />
-              </svg>
-              Copy email
-            </span>
-            <span aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="size-4">
-                <path d="m5 12.5 4.5 4.5L19 7.5" />
-              </svg>
-              Copied
+            <span className="btn-swap" data-on={copied || undefined}>
+              <Roll text="Copy email" />
+              <span aria-hidden="true">Copied ✓</span>
             </span>
           </button>
-          <a href={profile.resumeUrl} download className="btn-glow cursor-target">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-4" aria-hidden="true">
-              <path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14" />
-            </svg>
-            Download resume (PDF)
+          <a href={profile.resumeUrl} download className="btn btn-line cursor-target">
+            <Roll text="Download resume (PDF)" />
           </a>
         </div>
       </div>

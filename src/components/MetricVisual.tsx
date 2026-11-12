@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import Seg from "@/components/Seg";
 import type { Metric } from "@/data/resume";
 
 type Props = {
@@ -60,22 +61,15 @@ export default function MetricVisual({ metric, on, ai, usd, onCurrency }: Props)
   if (v.kind === "currency") {
     return (
       <div className="flex flex-wrap items-center gap-3">
-        <div role="group" aria-label="Show revenue in" className="inline-flex rounded-full border border-line-strong p-0.5 font-mono text-[11px]">
-          {[
-            { usd: false, label: "₹ INR" },
-            { usd: true, label: "US $" },
-          ].map((o) => (
-            <button
-              key={o.label}
-              type="button"
-              aria-pressed={usd === o.usd}
-              onClick={() => onCurrency(o.usd)}
-              className={`cursor-target rounded-full px-3 py-1 transition-colors ${usd === o.usd ? "bg-text text-bg" : "text-muted hover:text-text"}`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
+        <Seg
+          label="Show revenue in"
+          value={usd}
+          onChange={onCurrency}
+          options={[
+            { value: false, label: "₹ INR" },
+            { value: true, label: "US $" },
+          ]}
+        />
         <span className="micro text-faint">Every month, from one engine</span>
       </div>
     );

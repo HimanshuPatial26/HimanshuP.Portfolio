@@ -2,6 +2,7 @@ import { ViewTransition, type CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Chip, Ring, Roll } from "@/components/Buttons";
 import LoopVideo from "@/components/projects/LoopVideo";
 import ProjectChapters from "@/components/projects/ProjectChapters";
 import ProjectHero from "@/components/projects/ProjectHero";
@@ -82,14 +83,10 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
                   href={l.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={
-                    i === 0
-                      ? "btn-arrow cursor-target"
-                      : "cursor-target inline-flex items-center gap-2 rounded-full border border-line-strong px-5 py-2.5 text-sm font-medium transition-colors hover:border-text"
-                  }
+                  className={i === 0 ? "btn btn-primary cursor-target" : "btn btn-line cursor-target"}
                 >
-                  {l.label}
-                  <span aria-hidden="true">↗</span>
+                  <Roll text={l.label} />
+                  {i === 0 && <Chip dir="ne" />}
                 </a>
               ))}
             </div>
@@ -121,8 +118,9 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
         </Link>
         <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/#projects" className="cursor-target inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.16em] text-muted uppercase hover:text-text">
-            <span aria-hidden="true">←</span> All projects
+          <a href="/#projects" className="link-roll cursor-target">
+            <Ring dir="w" />
+            <Roll text="All projects" />
           </a>
         </div>
       </section>

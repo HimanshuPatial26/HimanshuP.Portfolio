@@ -2,6 +2,7 @@
 
 import { ViewTransition, useEffect, useRef, useState, type CSSProperties, type ReactNode, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
+import { Chip, Ring, Roll } from "@/components/Buttons";
 import SectionHeading from "@/components/SectionHeading";
 import LoopVideo from "@/components/projects/LoopVideo";
 import { FilmDialog } from "@/components/projects/ProjectHero";
@@ -240,17 +241,14 @@ export default function Projects() {
                   {a.line}
                 </p>
                 <div className="stage-in mt-[min(1.5rem,3svh)] flex flex-wrap items-center gap-4" style={{ animationDelay: "210ms" }}>
-                  <Link href={a.href} className="btn-arrow cursor-target">
-                    Open project
-                    <Arrow className="h-2.5 w-6" />
+                  <Link href={a.href} className="btn btn-primary cursor-target">
+                    <Roll text="Open project" />
+                    <Chip />
                   </Link>
                   {a.built ? (
-                    <button
-                      type="button"
-                      onClick={() => setFilm(a.built!)}
-                      className="cursor-target inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.16em] text-muted uppercase transition-colors hover:text-text"
-                    >
-                      <span aria-hidden="true">▶</span> Play the film · {a.built.video.filmLength}
+                    <button type="button" onClick={() => setFilm(a.built!)} className="link-roll cursor-target">
+                      <Ring dir="play" />
+                      <Roll text={`Play the film · ${a.built.video.filmLength}`} />
                     </button>
                   ) : (
                     <span className="flex items-baseline gap-2">
@@ -291,8 +289,11 @@ export default function Projects() {
                       <div key={x.id}>{layer}</div>
                     );
                   })}
-                  <span className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-medium text-black opacity-0 shadow-lg transition-opacity duration-300 group-hover/stage:opacity-100 group-focus-visible/stage:opacity-100">
-                    Open project <Arrow className="h-2.5 w-5" />
+                  <span className="absolute right-4 bottom-4 inline-flex items-center gap-3 rounded-full bg-white py-1 pr-1 pl-4 font-mono text-[10.5px] tracking-[0.14em] text-black uppercase opacity-0 shadow-lg transition-opacity duration-300 group-hover/stage:opacity-100 group-focus-visible/stage:opacity-100">
+                    Open project
+                    <span className="grid size-7 place-items-center rounded-full bg-black text-white">
+                      <Arrow className="h-2 w-3.5" />
+                    </span>
                   </span>
                 </Link>
               </div>
@@ -379,9 +380,9 @@ export default function Projects() {
               <h3 className="mt-4 text-[2rem] leading-[0.95] tracking-[-0.04em]">{x.name}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{x.line}</p>
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                <Link href={x.href} className="btn-arrow cursor-target">
-                  Open project
-                  <Arrow className="h-2.5 w-6" />
+                <Link href={x.href} className="btn btn-primary cursor-target">
+                  <Roll text="Open project" />
+                  <Chip />
                 </Link>
                 <span className="flex items-baseline gap-2">
                   <span className="font-display text-lg text-[var(--acc)]">{x.stat.value}</span>

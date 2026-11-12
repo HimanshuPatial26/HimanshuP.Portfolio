@@ -15,7 +15,7 @@ export default function SoundToggle() {
       aria-pressed={on}
       aria-label={on ? "Turn sound off" : "Turn sound on"}
       data-tip={on ? "Sound off" : "Sound on"}
-      className="tip cursor-target fixed top-5 right-[calc(clamp(1rem,4vw,2rem)+11.5rem)] z-[45] grid size-[2.35rem] place-items-center rounded-full border border-line-strong bg-[color-mix(in_srgb,var(--text)_6%,transparent)] text-text backdrop-blur transition-colors hover:bg-[color-mix(in_srgb,var(--text)_12%,transparent)]"
+      className="tip icon-bloom cursor-target fixed top-5 right-[calc(clamp(1rem,4vw,2rem)+11.5rem)] z-[45] grid size-[2.35rem] place-items-center rounded-full border border-line-strong bg-[color-mix(in_srgb,var(--text)_6%,transparent)] backdrop-blur transition-colors hover:bg-[color-mix(in_srgb,var(--text)_12%,transparent)]"
     >
       <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />

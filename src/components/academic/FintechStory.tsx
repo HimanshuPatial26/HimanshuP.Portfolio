@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import StickyStory, { type StoryChapter } from "@/components/academic/StickyStory";
+import Seg from "@/components/Seg";
 
 /*
  * Drivers of FinTech app adoption, India × Dubai: Himanshu's International Business Research
@@ -55,20 +56,20 @@ function PathModel({ market, setMarket, focus }: { market: Market; setMarket: (m
     <div className="glass rounded-[22px] p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
         <span className="font-mono text-[10px] tracking-[0.16em] text-faint uppercase">PLS-SEM · path coefficients</span>
-        <div role="group" aria-label="Market" className="inline-flex rounded-full border border-line-strong p-[3px] font-mono text-[10.5px] tracking-[0.14em] uppercase">
-          {(["india", "dubai"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={market === m}
-              onClick={() => setMarket(m)}
-              className={`cursor-target rounded-full px-3.5 py-1.5 transition-colors ${market === m ? "bg-text text-bg" : "text-muted hover:text-text"}`}
-            >
-              {m === "india" ? "India" : "Dubai"}
-              <span className="hidden sm:inline">{m === "india" ? " · n 36" : " · n 35"}</span>
-            </button>
-          ))}
-        </div>
+        <Seg
+          label="Market"
+          value={market}
+          onChange={setMarket}
+          options={(["india", "dubai"] as const).map((m) => ({
+            value: m,
+            label: (
+              <>
+                {m === "india" ? "India" : "Dubai"}
+                <span className="hidden sm:inline">{m === "india" ? " · n 36" : " · n 35"}</span>
+              </>
+            ),
+          }))}
+        />
       </div>
       <svg viewBox="0 0 540 390" className="mt-3 w-full" role="img" aria-label={`Path model for ${market === "india" ? "India" : "Dubai"}`}>
         <defs>

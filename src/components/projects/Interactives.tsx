@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-const seg = "inline-flex rounded-full border border-line-strong p-[3px] font-mono text-[10.5px] tracking-[0.14em] uppercase";
-const segBtn = (on: boolean) => `cursor-target rounded-full px-3.5 py-1.5 transition-colors ${on ? "bg-text text-bg" : "text-muted hover:text-text"}`;
+import Seg from "@/components/Seg";
 
 /**
  * CallEvals' Phase 0 eval, from its README: extraction precision on six hand-labelled mock calls,
@@ -20,13 +18,15 @@ export function EvalToggle() {
     <div className="glass mt-8 rounded-2xl p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="font-mono text-[10.5px] tracking-[0.16em] text-muted uppercase">Extraction precision</span>
-        <div role="group" aria-label="Eval run" className={seg}>
-          {([1, 2] as const).map((r) => (
-            <button key={r} type="button" aria-pressed={run === r} onClick={() => setRun(r)} className={segBtn(run === r)}>
-              Run {r}
-            </button>
-          ))}
-        </div>
+        <Seg
+          label="Eval run"
+          value={run}
+          onChange={setRun}
+          options={[
+            { value: 1 as const, label: "Run 1" },
+            { value: 2 as const, label: "Run 2" },
+          ]}
+        />
       </div>
       <div className="mt-6 space-y-5">
         {rows.map((row) => {
@@ -139,14 +139,15 @@ export function PlainToggle() {
     <div className="glass mt-8 rounded-2xl p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="font-mono text-[10.5px] tracking-[0.16em] text-faint uppercase">Example</span>
-        <div role="group" aria-label="Explain in" className={seg}>
-          <button type="button" aria-pressed={!plain} onClick={() => setPlain(false)} className={segBtn(!plain)}>
-            Clinical detail
-          </button>
-          <button type="button" aria-pressed={plain} onClick={() => setPlain(true)} className={segBtn(plain)}>
-            Plain language
-          </button>
-        </div>
+        <Seg
+          label="Explain in"
+          value={plain}
+          onChange={setPlain}
+          options={[
+            { value: false, label: "Clinical detail" },
+            { value: true, label: "Plain language" },
+          ]}
+        />
       </div>
       <p key={text} className="swap-in mt-6 font-display text-[clamp(1.4rem,2.4vw,1.9rem)] leading-[1.08] tracking-[-0.02em]" aria-live="polite">
         {text}

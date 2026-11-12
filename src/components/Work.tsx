@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import SectionHeading from "@/components/SectionHeading";
-import Squiggle from "@/components/Squiggle";
+import { Chip, Roll } from "@/components/Buttons";
 import { caseStudies, type Track } from "@/data/resume";
 
 const trackStyle: Record<Track, string> = {
@@ -130,9 +130,9 @@ export default function Work() {
                     {c.result}
                   </p>
                 </div>
-                <a href={`/work/${c.id}`} className="btn-arrow cursor-target swap-in mt-10" style={{ animationDelay: "240ms" }}>
-                  Read the case study
-                  <Squiggle />
+                <a href={`/work/${c.id}`} className="btn btn-primary cursor-target swap-in mt-10" style={{ animationDelay: "240ms" }}>
+                  <Roll text="Read the case study" />
+                  <Chip />
                 </a>
               </div>
             </div>

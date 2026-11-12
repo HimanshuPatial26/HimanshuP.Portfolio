@@ -433,158 +433,6 @@ body {
   transform: translate(2.333px, 2.333px) scale(0.92);
 }
 
-/* Arrow button: the squiggle arrow wobbles on hover. From Uiverse.io by vinodjangid07 */
-.btn-arrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6em;
-  padding: 0.8em 1.05em 0.8em 1.45em;
-  border-radius: 999px;
-  border: 4px solid color-mix(in srgb, var(--text) 16%, transparent);
-  background: var(--text);
-  background-clip: padding-box;
-  color: var(--on-text);
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition:
-    border-color 0.3s,
-    transform 0.2s;
-}
-.btn-arrow:hover {
-  border-color: color-mix(in srgb, var(--ai) 50%, transparent);
-}
-.btn-arrow:active {
-  transform: scale(0.97);
-}
-.btn-arrow svg {
-  width: 2em;
-  height: 1em;
-  overflow: visible;
-}
-.btn-arrow:hover svg {
-  animation: jello-vertical 0.9s both;
-  transform-origin: left;
-}
-@keyframes jello-vertical {
-  0% {
-    transform: scale3d(1, 1, 1);
-  }
-  30% {
-    transform: scale3d(0.75, 1.25, 1);
-  }
-  40% {
-    transform: scale3d(1.25, 0.75, 1);
-  }
-  50% {
-    transform: scale3d(0.85, 1.15, 1);
-  }
-  65% {
-    transform: scale3d(1.05, 0.95, 1);
-  }
-  75% {
-    transform: scale3d(0.95, 1.05, 1);
-  }
-  100% {
-    transform: scale3d(1, 1, 1);
-  }
-}
-
-/* Electric-blue button that glows on hover. Adapted from Uiverse.io by nima-mollazadeh */
-.btn-glow {
-  position: relative;
-  isolation: isolate;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0.95em 1.45em;
-  border-radius: 999px;
-  background: var(--blue);
-  color: #ffffff;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-.btn-glow::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.18), transparent 60%);
-  opacity: 0;
-  transition: opacity 0.5s;
-}
-.btn-glow::after {
-  content: "";
-  position: absolute;
-  z-index: -2;
-  inset: 0;
-  border-radius: inherit;
-  background: inherit;
-  filter: blur(18px);
-  opacity: 0;
-  transition: opacity 0.5s;
-}
-.btn-glow:hover::before {
-  opacity: 1;
-}
-.btn-glow:hover::after {
-  opacity: 0.65;
-}
-
-/* Copy button: the label lifts away and "Copied" rises in. From Uiverse.io by fabiodevbr */
-.btn-copy {
-  position: relative;
-  overflow: hidden;
-  display: inline-grid;
-  place-items: center;
-  min-width: 9.5rem;
-  height: 3.4rem;
-  padding: 0 1.4rem;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: color-mix(in srgb, var(--bg) 45%, transparent);
-  color: var(--muted);
-  font-size: 0.875rem;
-  backdrop-filter: blur(8px);
-  transition:
-    background-color 0.5s,
-    color 0.5s,
-    border-color 0.5s,
-    min-width 0.5s;
-}
-.btn-copy > span {
-  grid-area: 1 / 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45em;
-  transition:
-    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.4s;
-}
-.btn-copy > span:last-child {
-  transform: translateY(130%);
-  opacity: 0;
-}
-.btn-copy:hover {
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--text) 45%, transparent);
-}
-.btn-copy[data-state="copied"] {
-  min-width: 10.5rem;
-  border-color: transparent;
-  background: var(--ai);
-  color: #fff;
-}
-.btn-copy[data-state="copied"] > span:first-child {
-  transform: translateY(-150%);
-  opacity: 0;
-}
-.btn-copy[data-state="copied"] > span:last-child {
-  transform: none;
-  opacity: 1;
-  transition-delay: 0.15s;
-}
-
 /* Spinning gradient border on the active / hovered card. From Uiverse.io by bhaveshxrawat,
    redone as a masked ring so the glass card stays see-through */
 @property --spin {
@@ -947,4 +795,436 @@ html.liquid-cursor :is(input, textarea, [contenteditable="true"]) {
   border-radius: 50%;
   background: var(--ai);
   will-change: transform;
+}
+
+/* utilities (hidden, margins…) can still override these, so they sit in the components layer */
+@layer components {
+/* ------------------------------------------------------------------ Buttons: arrow bloom × editorial roll
+   Every button carries a chip, an arrow circle or a small blue dot. On hover the chip blooms until it
+   fills the whole button (a big circle on ::before, centred on the chip and scaled down to the chip's
+   size, so the bloom is a GPU transform) and the label, set in Syne capitals, rolls over letter by
+   letter. Markup helpers: components/Buttons.tsx and Seg.tsx. */
+:root {
+  --btn-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --btn-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn {
+  --btn-fill: var(--bg); /* the chip's colour, and what it floods the button with */
+  --btn-on: var(--text); /* the label's colour once flooded */
+  --cx: calc(100% - 1.625rem); /* chip centre */
+  --k: 0.0625; /* chip radius ÷ the bloom circle's radius (1.25rem ÷ 20rem) */
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  height: 3.25rem;
+  padding: 0 0.375rem 0 1.45rem;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    color 0.45s var(--btn-ease),
+    transform 0.2s var(--btn-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 20rem);
+  left: calc(var(--cx) - 20rem);
+  z-index: -1;
+  width: 40rem;
+  height: 40rem;
+  border-radius: 50%;
+  background: var(--btn-fill);
+  transform: scale(var(--k));
+  transition: transform 0.65s var(--btn-ease);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+/* main: a solid pill, the arrow chip at its end floods it */
+.btn-primary {
+  background: var(--text);
+  color: var(--on-text);
+}
+/* second: an outline with a blue dot that floods it blue */
+.btn-line {
+  --btn-fill: var(--blue);
+  --btn-on: #ffffff;
+  --cx: 1.3rem;
+  --k: 0.0125; /* a 4px dot */
+  padding: 0 1.45rem 0 2.15rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 35%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+/* play the film: the chip leads, in the project's colour */
+.btn-film {
+  --btn-fill: var(--p-acc);
+  --btn-on: #000000;
+  --cx: 1.625rem;
+  padding: 0 1.3rem 0 0.375rem;
+  color: #ffffff;
+  background: rgb(0 0 0 / 0.5);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.15);
+  backdrop-filter: blur(12px);
+}
+.btn-film.on-page {
+  color: var(--text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  backdrop-filter: none;
+}
+.btn-film .btn-sub {
+  font-size: 0.62rem;
+  opacity: 0.6;
+}
+/* big, and in normal case (the email address) */
+.btn-lg {
+  --k: 0.075;
+  --cx: calc(100% - 1.95rem);
+  height: 3.75rem;
+  padding: 0 0.45rem 0 1.75rem;
+}
+.btn-lg .btn-chip {
+  width: 3rem;
+  height: 3rem;
+}
+.btn-plain {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.btn-chip {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  color: var(--btn-on);
+}
+
+/* the icon inside a chip or ring: two copies, one shoots out, the other slides in */
+.btn-ico {
+  --dx: 1;
+  --dy: 0;
+  display: grid;
+  width: 0.95rem;
+  height: 0.95rem;
+  overflow: hidden;
+}
+.btn-ico[data-dir="ne"] {
+  --dy: -1;
+}
+.btn-ico[data-dir="s"] {
+  --dx: 0;
+  --dy: 1;
+}
+.btn-ico[data-dir="w"] {
+  --dx: -1;
+}
+.btn-ico > svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s var(--btn-ease);
+}
+.btn-ico > svg:last-child {
+  transform: translate(calc(var(--dx) * -140%), calc(var(--dy) * -140%));
+}
+
+/* rolling labels: each letter sits on a copy of itself and the pair slides up a line, one letter
+   after another (one moving piece per letter) */
+.roll-row {
+  display: inline-flex;
+  /* not stretched to the row's height: each letter's pair stays two lines tall, so -50% is one line */
+  align-items: flex-start;
+  height: 1.3em;
+  overflow: hidden;
+  line-height: 1.3em;
+}
+.roll-ch {
+  display: inline-flex;
+  flex-direction: column;
+  white-space: pre;
+  transition: transform 0.5s var(--btn-ease);
+  transition-delay: calc(var(--i) * 14ms);
+}
+
+/* two labels in one place (copy → copied) */
+.btn-swap {
+  display: inline-grid;
+  height: 1.3em;
+  overflow: hidden;
+  line-height: 1.3em;
+}
+.btn-swap > * {
+  grid-area: 1 / 1;
+  transition: transform 0.5s var(--btn-ease);
+}
+.btn-swap > :last-child {
+  transform: translateY(110%);
+}
+.btn-swap[data-on] > :first-child {
+  transform: translateY(-110%);
+}
+.btn-swap[data-on] > :last-child {
+  transform: none;
+}
+
+/* text links: a rolling label beside a ring that fills blue */
+.link-roll {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+.link-ring {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition:
+    color 0.3s,
+    box-shadow 0.3s;
+}
+.link-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--blue);
+  transform: scale(0);
+  transition: transform 0.45s var(--btn-spring);
+}
+.link-ring .btn-ico {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+/* small ghost buttons: an outline that draws itself round the button */
+.btn-ghost {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+.btn-trace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+  overflow: visible;
+  pointer-events: none;
+}
+.btn-trace rect {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.btn-trace rect.run {
+  stroke: var(--text);
+  stroke-dasharray: 1 1.2;
+  stroke-dashoffset: 1.1;
+  transition: stroke-dashoffset 0.8s var(--btn-ease);
+}
+
+/* round icon buttons: blue blooms out from the centre */
+.icon-bloom {
+  color: var(--text);
+  transition: color 0.3s;
+}
+.icon-bloom::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--blue);
+  transform: scale(0);
+  transition: transform 0.45s var(--btn-spring);
+}
+
+/* switches: the thumb shrinks to a dot, travels, and blooms open under the new option */
+.seg {
+  position: relative;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.seg-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--text);
+  opacity: 0;
+  transition:
+    left 0.42s var(--btn-ease),
+    width 0.42s var(--btn-ease),
+    transform 0.26s var(--btn-ease);
+}
+.seg[data-ready] .seg-thumb {
+  opacity: 1;
+}
+.seg-thumb.travel {
+  transform: scale(0.12, 0.24);
+}
+.seg-btn {
+  position: relative;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--muted);
+  transition: color 0.25s;
+}
+.seg-btn[aria-pressed="false"]:hover {
+  color: var(--text);
+}
+.seg-btn[aria-pressed="true"] {
+  color: var(--bg);
+  transition-delay: 0.2s;
+}
+/* before the thumb is measured, the chosen option carries its own fill */
+.seg:not([data-ready]) .seg-btn[aria-pressed="true"] {
+  background: var(--text);
+}
+
+/* lit: hovered (mouse and trackpad only, so taps don't leave it stuck), focused from the keyboard,
+   or switched on (data-lit) */
+.btn:is(:focus-visible, [data-lit])::before {
+  transform: scale(1);
+}
+.btn:is(:focus-visible, [data-lit]) {
+  color: var(--btn-on);
+}
+:is(.btn, .link-roll, .btn-ghost):focus-visible .roll-ch {
+  transform: translateY(-50%);
+}
+:is(.btn, .link-roll):is(:focus-visible, [data-lit]) .btn-ico > svg:first-child {
+  transform: translate(calc(var(--dx) * 140%), calc(var(--dy) * 140%));
+}
+:is(.btn, .link-roll):is(:focus-visible, [data-lit]) .btn-ico > svg:last-child {
+  transform: none;
+}
+.link-roll:focus-visible {
+  color: var(--text);
+}
+.link-roll:focus-visible .link-ring::before,
+.icon-bloom:focus-visible::before {
+  transform: scale(1);
+}
+.link-roll:focus-visible .link-ring {
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+.btn-ghost:focus-visible {
+  color: var(--text);
+}
+.btn-ghost:focus-visible .btn-trace rect.run {
+  stroke-dashoffset: 0;
+}
+@media (hover: hover) {
+  .btn:hover::before {
+    transform: scale(1);
+  }
+  .btn:hover {
+    color: var(--btn-on);
+  }
+  :is(.btn, .link-roll, .btn-ghost):hover .roll-ch {
+    transform: translateY(-50%);
+  }
+  :is(.btn, .link-roll):hover .btn-ico > svg:first-child {
+    transform: translate(calc(var(--dx) * 140%), calc(var(--dy) * 140%));
+  }
+  :is(.btn, .link-roll):hover .btn-ico > svg:last-child {
+    transform: none;
+  }
+  .link-roll:hover {
+    color: var(--text);
+  }
+  .link-roll:hover .link-ring::before,
+  .icon-bloom:hover::before {
+    transform: scale(1);
+  }
+  .link-roll:hover .link-ring,
+  .icon-bloom:hover {
+    color: #ffffff;
+  }
+  .link-roll:hover .link-ring {
+    box-shadow: inset 0 0 0 1px var(--blue);
+  }
+  .btn-ghost:hover {
+    color: var(--text);
+  }
+  .btn-ghost:hover .btn-trace rect.run {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn::before,
+  .roll-ch,
+  .btn-swap > *,
+  .btn-ico > svg,
+  .link-ring::before,
+  .icon-bloom::before,
+  .btn-trace rect.run,
+  .seg-thumb,
+  .seg-btn {
+    transition: none !important;
+  }
+  /* no letter roll and no icon swap: the labels and arrows simply stay put */
+  .roll-ch,
+  .btn-ico > svg:first-child {
+    transform: none !important;
+  }
+  .roll-ch > span:last-child,
+  .btn-ico > svg:last-child {
+    visibility: hidden;
+  }
+  .seg-thumb.travel {
+    transform: none;
+  }
+}
+
 }

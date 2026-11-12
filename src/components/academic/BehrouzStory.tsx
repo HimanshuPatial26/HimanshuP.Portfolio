@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import DumCrown, { type Beat } from "@/components/academic/DumCrown";
 import StickyStory, { type StoryChapter } from "@/components/academic/StickyStory";
+import Seg from "@/components/Seg";
 
 /*
  * Behrouz Biryani, UAE: Team 1's Global Industry Project for Rebel Foods. Every figure comes from
@@ -11,8 +12,6 @@ import StickyStory, { type StoryChapter } from "@/components/academic/StickyStor
  */
 
 const NEG = "#ff8a7a";
-const seg = "inline-flex rounded-full border border-line-strong p-[3px] font-mono text-[10.5px] tracking-[0.14em] uppercase";
-const segBtn = (on: boolean) => `cursor-target rounded-full px-3.5 py-1.5 transition-colors ${on ? "bg-text text-bg" : "text-muted hover:text-text"}`;
 
 function Title({ children }: { children: ReactNode }) {
   return <h2 className="mt-4 text-[clamp(2rem,3.6vw,3.1rem)] leading-[1.02]">{children}</h2>;
@@ -45,14 +44,15 @@ function ReversalChart() {
     <div className="glass mt-8 rounded-2xl p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="font-mono text-[10.5px] tracking-[0.16em] text-muted uppercase">Behrouz quality vs rivals</span>
-        <div role="group" aria-label="View" className={seg}>
-          <button type="button" aria-pressed={!split} onClick={() => setSplit(false)} className={segBtn(!split)}>
-            Blended
-          </button>
-          <button type="button" aria-pressed={split} onClick={() => setSplit(true)} className={segBtn(split)}>
-            By order size
-          </button>
-        </div>
+        <Seg
+          label="View"
+          value={split}
+          onChange={setSplit}
+          options={[
+            { value: false, label: "Blended" },
+            { value: true, label: "By order size" },
+          ]}
+        />
       </div>
       <div className="mt-6 space-y-4">
         {rows.map((r) => (

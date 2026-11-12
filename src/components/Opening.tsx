@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { gsap } from "gsap";
+import { Roll, Trace } from "@/components/Buttons";
 import { film } from "@/lib/film";
 
 const SEEN_KEY = "hp-opening-seen";
@@ -264,9 +265,10 @@ export default function Opening() {
       <button
         ref={skipRef}
         type="button"
-        className="cursor-target pointer-events-auto absolute top-5 right-5 rounded-full border border-line-strong bg-bg/40 px-4 py-2 font-mono text-[11px] tracking-[0.2em] text-muted uppercase backdrop-blur transition-colors hover:text-text sm:top-8 sm:right-8"
+        className="btn-ghost cursor-target pointer-events-auto absolute top-5 right-5 bg-bg/40 backdrop-blur sm:top-8 sm:right-8"
       >
-        Skip intro
+        <Trace />
+        <Roll text="Skip intro" />
       </button>
     </div>
   );

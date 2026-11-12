@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { Ring, Roll } from "@/components/Buttons";
 import type { AcademicProject } from "@/data/projects";
 
 /** The page wrapper: the project's colour, and the room's glow behind everything. */
@@ -26,8 +27,9 @@ export function AcademicHeader({ p, title, subtitle }: { p: AcademicProject; tit
       <div className="rise-in flex flex-wrap items-center gap-x-5 gap-y-3">
         {/* plain <a>: RouteTransition takes it back to the list */}
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/#projects" className="cursor-target inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.16em] text-muted uppercase hover:text-text">
-          <span aria-hidden="true">←</span> All projects
+        <a href="/#projects" className="link-roll cursor-target">
+          <Ring dir="w" />
+          <Roll text="All projects" />
         </a>
         <span className="font-mono text-[11px] tracking-[0.16em] text-faint uppercase">04 / Projects · From my Master&apos;s</span>
         <span className="flex gap-2">
@@ -96,8 +98,9 @@ export function NextAcademic({ next }: { next: AcademicProject }) {
       </Link>
       <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/#projects" className="cursor-target inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.16em] text-muted uppercase hover:text-text">
-          <span aria-hidden="true">←</span> All projects
+        <a href="/#projects" className="link-roll cursor-target">
+          <Ring dir="w" />
+          <Roll text="All projects" />
         </a>
       </div>
     </section>

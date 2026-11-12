@@ -1,19 +1,12 @@
 "use client";
 
-import { ViewTransition, useEffect, useRef, useState } from "react";
+import { ViewTransition, useEffect, useRef, useState, type CSSProperties } from "react";
+import { Chip, Ring, Roll, Trace } from "@/components/Buttons";
 import LoopVideo from "@/components/projects/LoopVideo";
 import type { BuiltProject } from "@/data/projects";
 
 type Lenis = { stop: () => void; start: () => void; scrollTo: (t: HTMLElement | string, o?: object) => void };
 const lenis = () => (window as unknown as { __lenis?: Lenis }).__lenis;
-
-function Play({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 12 12" className={className} aria-hidden="true">
-      <path d="M3 1.5v9l7.5-4.5z" fill="currentColor" />
-    </svg>
-  );
-}
 
 /** The film with sound, in a modal player. Opened by a click, so the browser lets it play aloud. */
 export function FilmDialog({ open, onClose, p }: { open: boolean; onClose: () => void; p: BuiltProject }) {
@@ -56,12 +49,15 @@ export function FilmDialog({ open, onClose, p }: { open: boolean; onClose: () =>
           <p className="font-mono text-[11px] tracking-[0.16em] text-white/60 uppercase">
             {p.name} · the film · {p.video.filmLength}
           </p>
+          {/* the dialog is always dark: white outline and label in either theme */}
           <button
             type="button"
             onClick={() => ref.current?.close()}
-            className="cursor-target rounded-full border border-white/25 px-4 py-2 font-mono text-[11px] tracking-[0.16em] text-white uppercase transition-colors hover:bg-white/10"
+            className="btn-ghost cursor-target"
+            style={{ "--text": "#fff", "--muted": "rgb(255 255 255 / .7)", "--line-strong": "rgb(255 255 255 / .25)" } as CSSProperties}
           >
-            Close <span aria-hidden="true">✕</span>
+            <Trace />
+            <Roll text="Close ✕" />
           </button>
         </div>
       </div>
@@ -89,8 +85,9 @@ export default function ProjectHero({ p, index, total }: { p: BuiltProject; inde
       <div className="rise-in flex flex-wrap items-center gap-x-5 gap-y-3">
         {/* plain <a>: RouteTransition takes it back to the list */}
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/#projects" className="cursor-target inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.16em] text-muted uppercase hover:text-text">
-          <span aria-hidden="true">←</span> All projects
+        <a href="/#projects" className="link-roll cursor-target">
+          <Ring dir="w" />
+          <Roll text="All projects" />
         </a>
         <span className="font-mono text-[11px] tracking-[0.16em] text-faint uppercase">
           04 / Projects · Built {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
@@ -126,16 +123,10 @@ export default function ProjectHero({ p, index, total }: { p: BuiltProject; inde
           style={{ boxShadow: "0 0 120px rgb(var(--p-rgb) / .18), 0 40px 100px rgb(0 0 0 / .45)" }}
         >
           <LoopVideo src={p.video.scrub} poster={p.video.scrubPoster} from={p.video.heroFrom} eager className="absolute inset-0 size-full object-cover" />
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="cursor-target bg-black/50 backdrop-blur-md absolute top-5 left-5 hidden items-center gap-3 rounded-full border border-white/15 py-1.5 pr-4 pl-1.5 text-white sm:flex"
-          >
-            <span className="grid size-9 place-items-center rounded-full bg-[var(--p-acc)] text-black">
-              <Play className="size-3" />
-            </span>
-            <span className="text-sm font-medium">Play the film</span>
-            <span className="font-mono text-[10.5px] tracking-[0.14em] text-white/60 uppercase">{p.video.filmLength} · sound on</span>
+          <button type="button" onClick={() => setOpen(true)} className="btn btn-film cursor-target absolute top-5 left-5 hidden sm:inline-flex">
+            <Chip dir="play" />
+            <Roll text="Play the film" />
+            <span className="btn-sub">{p.video.filmLength} · sound on</span>
           </button>
           <span className="bg-black/50 backdrop-blur-md absolute top-5 right-5 hidden rounded-lg border border-white/15 px-2.5 py-1.5 font-mono text-[10px] tracking-[0.16em] text-white/70 uppercase sm:block">
             Muted loop
@@ -161,16 +152,10 @@ export default function ProjectHero({ p, index, total }: { p: BuiltProject; inde
       </ViewTransition>
 
       {/* phones: the play button sits under the film, so it doesn't cover the film's own words */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="cursor-target mt-4 flex items-center gap-3 rounded-full border border-line-strong py-1.5 pr-4 pl-1.5 sm:hidden"
-      >
-        <span className="grid size-8 place-items-center rounded-full bg-[var(--p-acc)] text-black">
-          <Play className="size-3" />
-        </span>
-        <span className="text-sm font-medium">Play the film</span>
-        <span className="font-mono text-[10.5px] tracking-[0.14em] text-muted uppercase">{p.video.filmLength} · sound on</span>
+      <button type="button" onClick={() => setOpen(true)} className="btn btn-film on-page cursor-target mt-4 sm:hidden">
+        <Chip dir="play" />
+        <Roll text="Play the film" />
+        <span className="btn-sub">{p.video.filmLength} · sound on</span>
       </button>
 
       <FilmDialog open={open} onClose={() => setOpen(false)} p={p} />

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import RollName from "@/components/RollName";
 import FoldWords from "@/components/FoldWords";
-import Squiggle from "@/components/Squiggle";
+import { Chip, Roll } from "@/components/Buttons";
 import { DotsTag, ThinArrow } from "@/components/Tags";
 import { useIntroRevealed } from "@/hooks/useClientFlags";
 import { profile } from "@/data/resume";
@@ -65,15 +65,12 @@ export default function Hero() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <a href="#work" className="btn-arrow cursor-target">
-              See my work
-              <Squiggle />
+            <a href="#work" className="btn btn-primary cursor-target">
+              <Roll text="See my work" />
+              <Chip dir="s" />
             </a>
-            <a href={profile.resumeUrl} download className="btn-glow cursor-target">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-4" aria-hidden="true">
-                <path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14" />
-              </svg>
-              Download resume
+            <a href={profile.resumeUrl} download className="btn btn-line cursor-target">
+              <Roll text="Download resume" />
             </a>
           </div>
         </div>
