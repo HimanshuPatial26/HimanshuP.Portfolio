@@ -144,17 +144,17 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     const tl = gsap.timeline({ paused: true });
 
     layerStates.forEach((ls, i) => {
-      tl.fromTo(ls.el, { xPercent: ls.start }, { xPercent: 0, duration: 0.5, ease: 'power4.out' }, i * 0.07);
+      tl.fromTo(ls.el, { xPercent: ls.start }, { xPercent: 0, duration: 0.6, ease: 'power3.out' }, i * 0.08);
     });
 
-    const lastTime = layerStates.length ? (layerStates.length - 1) * 0.07 : 0;
+    const lastTime = layerStates.length ? (layerStates.length - 1) * 0.08 : 0;
     const panelInsertTime = lastTime + (layerStates.length ? 0.08 : 0);
-    const panelDuration = 0.65;
+    const panelDuration = 0.72;
 
     tl.fromTo(
       panel,
       { xPercent: panelStart },
-      { xPercent: 0, duration: panelDuration, ease: 'power4.out' },
+      { xPercent: 0, duration: panelDuration, ease: 'power3.out' },
       panelInsertTime
     );
 
@@ -164,7 +164,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
 
       tl.to(
         itemEls,
-        { yPercent: 0, rotate: 0, duration: 1, ease: 'power4.out', stagger: { each: 0.1, from: 'start' } },
+        { yPercent: 0, rotate: 0, duration: 0.9, ease: 'power3.out', stagger: { each: 0.08, from: 'start' } },
         itemsStart
       );
 
@@ -211,10 +211,60 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       tl.eventCallback('onComplete', () => {
         busyRef.current = false;
       });
-      tl.play(0);
+      // Local patch: start on the next frame, so the slide doesn't share its first frame with the
+      // React re-render the click causes (that frame ran long and the panel jumped).
+      requestAnimationFrame(() => tl.play(0));
     } else {
       busyRef.current = false;
     }
+  }, [buildOpenTimeline]);
+
+  // Local patch: draw the open menu once, invisibly, while the page is idle. The first opening
+  // otherwise paints the panel, its layers and the big labels for the first time mid-slide and
+  // hitches (a ~180 ms frame); later openings were already smooth.
+  React.useEffect(() => {
+    let cancelled = false;
+    const warm = () => {
+      const panel = panelRef.current;
+      const pre = preLayersRef.current;
+      if (cancelled || !panel || openRef.current || busyRef.current) return;
+      const tl = buildOpenTimeline();
+      if (!tl) return;
+      const targets = [panel, pre].filter(Boolean) as HTMLElement[];
+      gsap.set(targets, { opacity: 0.001 });
+      tl.progress(1, true);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (openTlRef.current === tl) {
+            tl.progress(0, true).kill();
+            openTlRef.current = null;
+          }
+          gsap.set(targets, { opacity: 1 });
+        })
+      );
+    };
+    const w = window as unknown as {
+      __introDone?: boolean;
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    // The menu is hidden while the opening plays, so wait for it to finish and fade in.
+    let idle = 0;
+    let delay = 0;
+    const schedule = () => {
+      delay = window.setTimeout(() => {
+        idle = w.requestIdleCallback ? w.requestIdleCallback(warm, { timeout: 4000 }) : window.setTimeout(warm, 500);
+      }, 1200);
+    };
+    if (w.__introDone) schedule();
+    else window.addEventListener('intro:done', schedule, { once: true });
+    return () => {
+      cancelled = true;
+      window.removeEventListener('intro:done', schedule);
+      window.clearTimeout(delay);
+      if (w.cancelIdleCallback) w.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
+    };
   }, [buildOpenTimeline]);
 
   const playClose = useCallback(() => {
@@ -233,8 +283,8 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
 
     closeTweenRef.current = gsap.to(all, {
       xPercent: offscreen,
-      duration: 0.32,
-      ease: 'power3.in',
+      duration: 0.38,
+      ease: 'power2.in',
       overwrite: 'auto',
       onComplete: () => {
         const itemEls = Array.from(panel.querySelectorAll('.sm-panel-itemLabel')) as HTMLElement[];
@@ -484,8 +534,9 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
         <aside
           id="staggered-menu-panel"
           ref={panelRef}
-          className="staggered-menu-panel absolute top-0 right-0 h-full bg-white flex flex-col p-[6em_2em_2em_2em] overflow-y-auto z-10 backdrop-blur-[12px] pointer-events-auto"
-          style={{ WebkitBackdropFilter: 'blur(12px)' }}
+          // Local patch: no backdrop blur. The panel is opaque, so the blur showed nothing, but it
+          // re-blurred the live 3D canvas behind on every frame of the slide and made it judder.
+          className="staggered-menu-panel absolute top-0 right-0 h-full bg-white flex flex-col p-[6em_2em_2em_2em] overflow-y-auto z-10 pointer-events-auto"
           aria-hidden={!open}
           inert={!open}
           data-lenis-prevent
@@ -566,11 +617,11 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
 .sm-scope .sm-panel-itemWrap { position: relative; overflow: hidden; line-height: 1; }
 .sm-scope .sm-icon-line { position: absolute; left: 50%; top: 50%; width: 100%; height: 2px; background: currentColor; border-radius: 2px; transform: translate(-50%, -50%); will-change: transform; }
 .sm-scope .sm-line { display: none !important; }
-.sm-scope .staggered-menu-panel { position: absolute; top: 0; right: 0; width: clamp(260px, 38vw, 420px); height: 100%; background: white; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; flex-direction: column; padding: 6em 2em 2em 2em; overflow-y: auto; z-index: 10; }
+.sm-scope .staggered-menu-panel { position: absolute; top: 0; right: 0; width: clamp(260px, 38vw, 420px); height: 100%; background: white; will-change: transform; display: flex; flex-direction: column; padding: 6em 2em 2em 2em; overflow-y: auto; z-index: 10; }
 .sm-scope [data-position='left'] .staggered-menu-panel { right: auto; left: 0; }
 .sm-scope .sm-prelayers { position: absolute; top: 0; right: 0; bottom: 0; width: clamp(260px, 38vw, 420px); pointer-events: none; z-index: 5; }
 .sm-scope [data-position='left'] .sm-prelayers { right: auto; left: 0; }
-.sm-scope .sm-prelayer { position: absolute; top: 0; right: 0; height: 100%; width: 100%; transform: translateX(0); }
+.sm-scope .sm-prelayer { position: absolute; top: 0; right: 0; height: 100%; width: 100%; transform: translateX(0); will-change: transform; }
 .sm-scope .sm-panel-inner { flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
 .sm-scope .sm-socials { margin-top: auto; padding-top: 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .sm-scope .sm-socials-title { margin: 0; font-size: 1rem; font-weight: 500; color: var(--sm-accent, #ff0000); }

@@ -17,7 +17,11 @@ export default function SmoothScroll() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const lenis = new Lenis({
-      lerp: 0.085,
+      // Calm, controlled scrolling: a shorter glide that settles quickly (higher lerp), and less
+      // distance per wheel or trackpad flick, so one gesture never throws the page past a section.
+      lerp: 0.12,
+      wheelMultiplier: 0.75,
+      touchMultiplier: 0.9,
       smoothWheel: true,
       // #hash links are handled by RouteTransition so menu links work from any page
       anchors: false,

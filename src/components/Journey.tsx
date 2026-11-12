@@ -6,7 +6,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import MagneticField from "@/components/MagneticField";
 import SectionHeading from "@/components/SectionHeading";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
-import { builtProjects } from "@/data/projects";
 import { education, experience, skills } from "@/data/resume";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -40,16 +39,6 @@ const panels: Panel[] = [
     org: `${mgb.school} · ${mgb.place}`,
     accent: "ai",
     body: `${mgb.detail}. Course projects include a FinTech adoption study across India and Dubai, and a strategy brief for Rebel Foods in the UAE.`,
-    link: { href: "/#projects", label: "See the projects" },
-  },
-  {
-    mark: "Now",
-    period: "2026",
-    title: "Building my own AI products",
-    org: builtProjects.map((p) => p.name).join(" · "),
-    accent: "growth",
-    body: "Alongside the Master's: CallEvals, sales-call reviews for Dubai brokerages, and AI Med-pedia, a medical information assistant.",
-    tags: ["LLM products", "RAG", "Evals"],
     link: { href: "/#projects", label: "See the projects" },
   },
 ];
