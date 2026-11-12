@@ -160,6 +160,7 @@ export const caseStudies: CaseStudy[] = [
       "Developed a CRM with an automatic dialer, paired with a scoring-based Lead Management System that matches each lead to the right product.",
     result: "+30% agent productivity",
     resultIsMetric: true,
+    figure: "/figures/crm-lead-scoring.html",
   },
   {
     id: "super-coaching",
@@ -172,6 +173,7 @@ export const caseStudies: CaseStudy[] = [
       "Shipped an in-app onboarding overlay aimed squarely at that segment.",
     result: "+7% conversion rate",
     resultIsMetric: true,
+    figure: "/figures/super-coaching.html",
   },
 ];
 
