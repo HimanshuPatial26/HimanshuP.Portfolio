@@ -845,7 +845,9 @@ export default function ChromeScene() {
     );
 
     // ---- stops: read from the DOM, re-read on route changes and layout shifts
-    type Stop = { el: HTMLElement | null; shape: string; frame: Frame; start: number; end: number; chapter: string; chapterNo: string };
+    // `sec` is the page section a stop belongs to (Impact's numbers are several stops in one section);
+    // the chapter, and whether a change between two stops is a cut that gets a title card, go by it.
+    type Stop = { el: HTMLElement | null; sec: HTMLElement | null; shape: string; frame: Frame; start: number; end: number; chapter: string; chapterNo: string };
     let stops: Stop[] = [];
     const measure = () => {
       const vh = window.innerHeight;
@@ -867,12 +869,14 @@ export default function ChromeScene() {
           frame: FRAMES[el.dataset.pose || "center"] ?? FRAMES.center,
           start,
           end,
-          chapter: el.dataset.chapter ?? "",
-          chapterNo: el.dataset.chapterNo ?? "",
+          sec: (el.closest("section") as HTMLElement | null) ?? el,
+          chapter: el.dataset.chapter ?? (el.closest("section") as HTMLElement | null)?.dataset.chapter ?? "",
+          chapterNo: el.dataset.chapterNo ?? (el.closest("section") as HTMLElement | null)?.dataset.chapterNo ?? "",
         };
       });
       if (stops.length) stops[0].start = -Infinity;
-      else stops = [{ el: null, shape: HERO, frame: FRAMES.center, start: -Infinity, end: Infinity, chapter: "", chapterNo: "" }];
+      else stops = [{ el: null, sec: null, shape: HERO, frame: FRAMES.center, start: -Infinity, end: Infinity, chapter: "", chapterNo: "" }];
+      film.sections = [...new Set(stops.map((s) => s.sec).filter((s): s is HTMLElement => !!s))];
     };
     measure();
 
@@ -1278,10 +1282,15 @@ export default function ChromeScene() {
 
       film.mix = mix;
       film.morph = changing ? Math.sin(Math.PI * mix) : 0;
-      film.chapter = changing ? sb.chapter : "";
-      film.chapterNo = changing ? sb.chapterNo : "";
-      film.chapterFrom = changing ? sa.chapter : "";
-      film.chapterFromNo = changing ? sa.chapterNo : "";
+      // a cut (title card, letterbox) only where the change crosses from one section into another
+      const cut = changing && sa.sec !== sb.sec;
+      film.chapter = cut ? sb.chapter : "";
+      film.chapterNo = cut ? sb.chapterNo : "";
+      film.chapterFrom = cut ? sa.chapter : "";
+      film.chapterFromNo = cut ? sa.chapterNo : "";
+      film.cutFrom = cut ? sa.sec : null;
+      film.cutTo = cut ? sb.sec : null;
+      film.current = changing && mix >= 0.47 ? sb.sec : sa.sec;
       film.grade = cur.grade;
       film.formed = changing ? "" : sa.shape;
 

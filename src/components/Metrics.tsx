@@ -135,7 +135,7 @@ export default function Metrics() {
   };
 
   return (
-    <section ref={sectionRef} id="impact" className="relative">
+    <section ref={sectionRef} id="impact" data-chapter="Impact" data-chapter-no="02" className="relative">
       {/* the pinned screen */}
       <div className="sticky top-0 z-[1] flex h-[100svh] items-end pb-[7svh] md:items-center md:pb-0">
         {/* the glass number's side: drag to turn it */}
@@ -247,7 +247,6 @@ export default function Metrics() {
             data-pose="number"
             data-stop="tight"
             data-grade={grades[i]}
-            {...(i === 0 ? { "data-chapter": "Impact", "data-chapter-no": "02" } : {})}
             className="h-[70svh]"
           />
         ))}

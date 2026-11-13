@@ -24,7 +24,7 @@ export default function Hero() {
   const fade = `transition-all duration-1000 ease-out ${revealed ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`;
 
   return (
-    <section id="top" data-shape="husk" data-pose="center" className="relative flex h-[100svh] min-h-[640px] flex-col overflow-hidden">
+    <section id="top" data-shape="husk" data-pose="center" data-chapter="Home" data-chapter-no="00" className="relative flex h-[100svh] min-h-[640px] flex-col overflow-hidden">
       <h1 className="sr-only">
         {profile.name}, {profile.title}
       </h1>

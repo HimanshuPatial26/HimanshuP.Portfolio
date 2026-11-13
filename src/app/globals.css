@@ -203,6 +203,13 @@ body {
   opacity: 0;
 }
 
+/* a section that isn't the current one (FilmOverlay): kept out of sight until its title card
+   has covered the screen. Still in the page for screen readers and the keyboard. */
+[data-veiled] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Selected Work: a scan line sweeps the pinned case as its name decodes */
 .decode-scan {
   position: absolute;

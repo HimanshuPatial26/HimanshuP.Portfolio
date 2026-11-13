@@ -23,6 +23,13 @@ export const film = {
   /** label of the section above it in the same change: the one being entered when scrolling up */
   chapterFrom: "",
   chapterFromNo: "",
+  /** the two sections of the cut in progress (null when none) */
+  cutFrom: null as HTMLElement | null,
+  cutTo: null as HTMLElement | null,
+  /** the section that should be on screen: switches mid-cut, while the title card covers it */
+  current: null as HTMLElement | null,
+  /** every section that holds a stop, in page order */
+  sections: [] as HTMLElement[],
   /** -1 AI blue .. 0 neutral .. +1 Growth orange */
   grade: 0,
   /** scroll speed in viewport heights per second (signed) */

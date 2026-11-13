@@ -104,7 +104,46 @@ export default function FilmOverlay() {
           seamRef.current.style.transform = `scaleX(${clamp01((m - 0.44) / 0.1).toFixed(3)})`;
         }
       }
+
+      // Only the current section is on screen. film.current switches halfway through a cut,
+      // while the card covers the screen, so the next section shows only as the card parts and
+      // never peeks in before it. A cut with no card to show (a section without a chapter name)
+      // hides neither of its two sections.
+      const sections = reduce || !veilReady ? [] : film.sections;
+      const cur = reduce ? null : film.current;
+      const cardless = !!film.cutFrom && !name;
+      const keepA = cardless ? film.cutFrom : null;
+      const keepB = cardless ? film.cutTo : null;
+      if (sections !== lastSections || cur !== lastCur || keepA !== lastA || keepB !== lastB) {
+        lastSections = sections;
+        lastCur = cur;
+        lastA = keepA;
+        lastB = keepB;
+        const hide = new Set(cur ? sections.filter((s) => s !== cur && s !== keepA && s !== keepB) : []);
+        veiled.forEach((el) => {
+          if (hide.has(el)) return;
+          el.removeAttribute("data-veiled");
+          veiled.delete(el);
+        });
+        hide.forEach((el) => {
+          if (veiled.has(el)) return;
+          el.setAttribute("data-veiled", "");
+          veiled.add(el);
+        });
+      }
     };
+    const veiled = new Set<HTMLElement>();
+    // Hide nothing until the opening reveals the page: by then React has finished hydrating the
+    // sections (an attribute added before that is reported as a hydration mismatch), and the
+    // opening covers the screen until that moment anyway.
+    let veilReady = !!(window as unknown as { __introDone?: boolean }).__introDone;
+    const onReveal = () => (veilReady = true);
+    window.addEventListener("intro:reveal", onReveal);
+    window.addEventListener("intro:done", onReveal);
+    let lastSections: HTMLElement[] | null = null;
+    let lastCur: HTMLElement | null = null;
+    let lastA: HTMLElement | null = null;
+    let lastB: HTMLElement | null = null;
     gsap.ticker.add(tick);
 
     // close the bars over page changes
@@ -121,6 +160,9 @@ export default function FilmOverlay() {
 
     return () => {
       gsap.ticker.remove(tick);
+      window.removeEventListener("intro:reveal", onReveal);
+      window.removeEventListener("intro:done", onReveal);
+      veiled.forEach((el) => el.removeAttribute("data-veiled"));
       window.clearTimeout(t);
       window.removeEventListener("route:leave", onLeave);
       window.removeEventListener("route:enter", onEnter);
