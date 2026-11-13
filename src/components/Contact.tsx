@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Chip, Roll } from "@/components/Buttons";
 import Magnet from "@/components/reactbits/Magnet";
 import Scribble from "@/components/Scribble";
-import { DotsTag } from "@/components/Tags";
 import { toast } from "@/components/Toaster";
 import { profile } from "@/data/resume";
 import { useTheme } from "@/hooks/useTheme";
@@ -93,34 +92,6 @@ export default function Contact() {
           </a>
         </div>
       </div>
-
-      {/* full-width wordmark, edge to edge */}
-      <div className="pointer-events-none relative overflow-hidden px-3 pt-10" aria-hidden="true">
-        <div className="mb-4 flex items-center justify-between gap-4 px-1">
-          <DotsTag>2026</DotsTag>
-          <p className="micro max-w-[16rem] text-right text-muted">
-            AI &amp; Growth Product Manager · {profile.location} · open to product roles
-          </p>
-        </div>
-        <p className="font-display text-[12vw] leading-[0.8] tracking-[-0.06em] whitespace-nowrap text-text">Himanshu Patial</p>
-      </div>
-
-      <footer className="relative border-t border-line bg-bg/60 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-faint sm:flex-row sm:justify-between sm:px-6">
-          <p>© {profile.name}</p>
-          <p>
-            Components adapted from{" "}
-            <a href="https://reactbits.dev" className="underline underline-offset-2 hover:text-muted">
-              React Bits
-            </a>{" "}
-            and{" "}
-            <a href="https://uiverse.io" className="underline underline-offset-2 hover:text-muted">
-              Uiverse
-            </a>{" "}
-            (MIT), and Originkit
-          </p>
-        </div>
-      </footer>
     </section>
   );
 }

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import FocusText from "@/components/FocusText";
+import SweepText from "@/components/SweepText";
 import { useMinWidth } from "@/hooks/useClientFlags";
 import { drawBadge } from "@/lib/badgeArt";
 
@@ -40,12 +40,12 @@ export default function About() {
       data-chapter-no="01"
       className="relative lg:h-[230svh]"
     >
-      {/* on desktop the whole block holds still while the statement is read word by word */}
+      {/* on desktop the whole block holds still while the statement is read under a passing band of light */}
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-24 sm:px-6 sm:py-32 lg:sticky lg:top-0 lg:h-[100svh] lg:grid-cols-[1.15fr_1fr] lg:pt-16 lg:pb-0">
         {/* sized against the screen height too, so the pinned panel fits short laptop screens */}
         <div className="glass rounded-[2rem] p-7 sm:p-10 lg:py-[min(2.5rem,4.5svh)]">
           <p className="mb-[min(1.5rem,3svh)] font-mono text-xs tracking-widest text-faint uppercase">01 / About</p>
-          <FocusText
+          <SweepText
             text={statement}
             trackRef={sectionRef}
             className="text-[clamp(1.4rem,min(3vw,3.5svh),2.4rem)] leading-[1.3] font-medium tracking-tight text-text"

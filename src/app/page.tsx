@@ -1,5 +1,4 @@
 import Hero from "@/components/Hero";
-import Marquee from "@/components/Marquee";
 import About from "@/components/About";
 import Metrics from "@/components/Metrics";
 import Work from "@/components/Work";
@@ -13,7 +12,6 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <Marquee />
       <About />
       <Metrics />
       <Work />
