@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { gsap } from "gsap";
 import { Roll, Trace } from "@/components/Buttons";
 import { film } from "@/lib/film";
@@ -12,7 +11,7 @@ type Stage = { scene: boolean; particles: boolean; type: boolean; frame: boolean
 
 const STEPS: { key: keyof Stage; label: string }[] = [
   { key: "scene", label: "Fetching the 3D scene" },
-  { key: "particles", label: "Cracking the rock" },
+  { key: "particles", label: "Building the shapes" },
   { key: "type", label: "Setting the type" },
   { key: "frame", label: "Framing the first shot" },
 ];
@@ -33,11 +32,10 @@ function Wheel({ digit, dim }: { digit: number; dim: boolean }) {
 /**
  * The opening. First a boot readout: a large percentage counter whose digits
  * roll like a watch's date wheels, beside the four real loading steps ticking
- * off as they finish (3D file, particle sampling, fonts, first frame), over the
- * Blender render of the hero's glass orb developing as the page loads. At 100
+ * off as they finish (3D file, particle sampling, fonts, first frame). At 100
  * the readout collapses to a thin line like an old screen switching off, and
- * the scene takes over: particles stream in like a starfield, gather into the
- * globe, the name lands and the letterbox opens.
+ * the page takes over: the hero's wave fades up, the name lands and the
+ * letterbox opens.
  *
  * Plays in full once per browser session; after that a short version. Skip
  * (button or Esc) fast-forwards. Reduced motion goes straight to the page.
@@ -48,7 +46,6 @@ export default function Opening() {
   const readoutRef = useRef<HTMLDivElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
-  const posterRef = useRef<HTMLDivElement>(null);
   const [gone, setGone] = useState(false);
   const [count, setCount] = useState(0);
   const [stage, setStage] = useState<Stage>({ scene: false, particles: false, type: false, frame: false });
@@ -176,11 +173,6 @@ export default function Opening() {
         setCount(n);
       }
       if (barRef.current) barRef.current.style.transform = `scaleX(${shown.toFixed(3)})`;
-      // the rendered ring develops behind the readout as the site loads
-      if (posterRef.current) {
-        posterRef.current.style.opacity = (0.55 * shown).toFixed(3);
-        posterRef.current.style.transform = `scale(${(1.06 - 0.06 * shown).toFixed(4)})`;
-      }
       const st: Stage = { scene: loaded >= 0.999 || sceneReady, particles: sceneReady, type: fontsReady, frame: n >= 100 };
       const key = JSON.stringify(st);
       if (key !== lastStage) {
@@ -219,10 +211,6 @@ export default function Opening() {
       {/* the boot readout */}
       <div ref={coverRef} className="opening-cover pointer-events-auto absolute inset-0 bg-bg">
         <div className="film-horizon absolute inset-0" aria-hidden="true" />
-        {/* a still of the hero's husk (the live one flies together after this) */}
-        <div ref={posterRef} className="absolute inset-0 opacity-0" aria-hidden="true">
-          <Image src="/posters/husk.png" alt="" fill sizes="100vw" className="object-contain" />
-        </div>
         <div ref={readoutRef} className="relative flex h-full flex-col justify-between p-6 sm:p-10">
           <div className="flex flex-col gap-1.5 font-mono text-[11px] tracking-[0.25em] text-faint uppercase">
             <span>Himanshu Patial</span>

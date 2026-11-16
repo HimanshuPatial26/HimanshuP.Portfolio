@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import RollName from "@/components/RollName";
+import HeroWave from "@/components/hero/HeroWave";
 import FoldWords from "@/components/FoldWords";
 import { Chip, Roll } from "@/components/Buttons";
 import { DotsTag, ThinArrow } from "@/components/Tags";
@@ -15,40 +15,39 @@ const NAME_LINES = [
 
 /**
  * Hero, set like an editorial poster: a "●● 2026" tag and a line of micro
- * copy at the top, the name huge and staggered over the glass orb (drawn by the
- * 3D scene behind the page), a thin arrow, and the role, the unfolding focus words and the buttons
- * along the bottom.
+ * copy at the top, the name huge and staggered over the Gauze Blaze wave (the hero's own
+ * backdrop; the 3D scene shows no object here), a thin arrow, and the role, the unfolding focus
+ * words and the buttons along the bottom. The section and its text let the pointer through to
+ * the wave (which sits behind them), except the name and the buttons.
  */
 export default function Hero() {
   const revealed = useIntroRevealed();
   const fade = `transition-all duration-1000 ease-out ${revealed ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`;
 
   return (
-    <section id="top" data-shape="husk" data-pose="center" data-chapter="Home" data-chapter-no="00" className="relative flex h-[100svh] min-h-[640px] flex-col overflow-hidden">
+    <section id="top" data-shape="none" data-pose="center" data-chapter="Home" data-chapter-no="00" className="pointer-events-none relative flex h-[100svh] min-h-[640px] flex-col overflow-hidden">
       <h1 className="sr-only">
         {profile.name}, {profile.title}
       </h1>
 
-      {/* where the live 3D can't run (no WebGL), a still of the husk stands in */}
-      <div className="scene-fallback pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <Image src="/posters/husk.png" alt="" fill sizes="100vw" className="object-contain" />
-      </div>
+      {/* the wave behind everything in the hero */}
+      <HeroWave revealed={revealed} />
 
       {/* micro header */}
-      <div className={`relative z-10 mx-auto mt-24 flex max-w-[19rem] flex-col items-center gap-3 text-center delay-500 sm:mt-24 ${fade}`}>
+      <div className={`pointer-events-none relative z-10 mx-auto mt-24 flex max-w-[19rem] flex-col items-center gap-3 text-center delay-500 sm:mt-24 ${fade}`}>
         <DotsTag>2026 · {profile.location}</DotsTag>
         <p className="micro text-muted">
           Product manager shipping AI tutors, conversion engines and payment flows. Five years at Classplus, now at SP Jain.
         </p>
       </div>
 
-      {/* the name over the glass orb */}
-      <div className="flex flex-1 flex-col items-center justify-center overflow-x-clip px-3" aria-hidden="true">
-        <RollName lines={NAME_LINES} revealed={revealed} className="cursor-target text-text" />
+      {/* the name over the wave */}
+      <div className="pointer-events-none relative z-10 flex flex-1 flex-col items-center justify-center overflow-x-clip px-3" aria-hidden="true">
+        <RollName lines={NAME_LINES} revealed={revealed} className="cursor-target pointer-events-auto text-text" />
         <ThinArrow className={`mt-6 h-9 w-4 text-muted delay-1000 ${fade}`} />
       </div>
 
-      <div className={`relative z-10 shrink-0 delay-700 ${fade}`}>
+      <div className={`pointer-events-none relative z-10 shrink-0 delay-700 ${fade}`}>
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 pb-12 sm:px-6 md:flex-row md:items-end md:justify-between md:gap-8">
           <div className="max-w-xl">
             <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-line-strong px-3 py-1 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
@@ -64,7 +63,7 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="pointer-events-auto flex flex-wrap items-center gap-3">
             <a href="#work" className="btn btn-primary cursor-target">
               <Roll text="See my work" />
               <Chip dir="s" />
