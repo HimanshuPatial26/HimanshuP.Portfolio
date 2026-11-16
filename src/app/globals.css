@@ -332,6 +332,21 @@ body {
 .opening-cover {
   clip-path: inset(0% 0% 0% 0%);
 }
+/* Opening: the lattice sphere (dark theme) settles in behind the counter */
+.opening-sphere {
+  animation: opening-sphere-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes opening-sphere-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .opening-sphere {
+    animation: none;
+  }
+}
 
 /* Opening counter: each digit is a wheel of 0–9 that rolls to its value */
 .counter {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { Roll, Trace } from "@/components/Buttons";
 import { film } from "@/lib/film";
+import OpeningSphere from "@/components/opening/OpeningSphere";
 
 const SEEN_KEY = "hp-opening-seen";
 
@@ -211,7 +212,9 @@ export default function Opening() {
       {/* the boot readout */}
       <div ref={coverRef} className="opening-cover pointer-events-auto absolute inset-0 bg-bg">
         <div className="film-horizon absolute inset-0" aria-hidden="true" />
-        <div ref={readoutRef} className="relative flex h-full flex-col justify-between p-6 sm:p-10">
+        {/* the lattice sphere behind the readout (dark theme) */}
+        <OpeningSphere />
+        <div ref={readoutRef} className="pointer-events-none relative flex h-full flex-col justify-between p-6 sm:p-10">
           <div className="flex flex-col gap-1.5 font-mono text-[11px] tracking-[0.25em] text-faint uppercase">
             <span>Himanshu Patial</span>
             <span>
