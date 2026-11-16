@@ -1,24 +1,21 @@
 "use client";
 
-import RollName from "@/components/RollName";
+import MaskName from "@/components/hero/MaskName";
 import HeroWave from "@/components/hero/HeroWave";
-import FoldWords from "@/components/FoldWords";
+import ManifestoLine from "@/components/hero/ManifestoLine";
 import { Chip, Roll } from "@/components/Buttons";
-import { DotsTag, ThinArrow } from "@/components/Tags";
 import { useIntroRevealed } from "@/hooks/useClientFlags";
 import { profile } from "@/data/resume";
 
-const NAME_LINES = [
-  { text: "Himanshu", accent: "ai" as const },
-  { text: "Patial", accent: "growth" as const },
-];
+const NAME_LINES = ["Himanshu", "Patial"];
 
 /**
- * Hero, set like an editorial poster: a "●● 2026" tag and a line of micro
- * copy at the top, the name huge and staggered over the Gauze Blaze wave (the hero's own
- * backdrop; the 3D scene shows no object here), a thin arrow, and the role, the unfolding focus
- * words and the buttons along the bottom. The section and its text let the pointer through to
- * the wave (which sits behind them), except the name and the buttons.
+ * Hero, "Stacked": the open-to-roles tag and the role at the top, the name huge and centred
+ * over the Gauze Blaze wave (the hero's own backdrop; the 3D scene shows no object here), its
+ * lines sliding up into view (Mask), a clear gap, then the manifesto line ("I turn [support
+ * tickets] into [products].", its words rolling on reels) with its proof, a scroll cue, and
+ * the buttons at the foot. The section and its text let the pointer through to the wave
+ * (which sits behind them), except the name, the line, the cue and the buttons.
  */
 export default function Hero() {
   const revealed = useIntroRevealed();
@@ -33,45 +30,40 @@ export default function Hero() {
       {/* the wave behind everything in the hero */}
       <HeroWave revealed={revealed} />
 
-      {/* micro header */}
-      <div className={`pointer-events-none relative z-10 mx-auto mt-24 flex max-w-[19rem] flex-col items-center gap-3 text-center delay-500 sm:mt-24 ${fade}`}>
-        <DotsTag>2026 · {profile.location}</DotsTag>
-        <p className="micro text-muted">
-          Product manager shipping AI tutors, conversion engines and payment flows. Five years at Classplus, now at SP Jain.
+      {/* the tag and the role */}
+      <div className={`relative z-10 mt-20 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 text-center delay-500 ${fade}`}>
+        <p className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3 py-1 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
+          <span className="size-1.5 animate-pulse rounded-full bg-blue" aria-hidden="true" />
+          Open to AI &amp; Growth PM roles
+        </p>
+        <p className="text-[13px] text-muted">
+          <span className="text-ai">AI</span> &amp; Growth Product Manager · {profile.location}
         </p>
       </div>
 
-      {/* the name over the wave */}
-      <div className="pointer-events-none relative z-10 flex flex-1 flex-col items-center justify-center overflow-x-clip px-3" aria-hidden="true">
-        <RollName lines={NAME_LINES} revealed={revealed} className="cursor-target pointer-events-auto text-text" />
-        <ThinArrow className={`mt-6 h-9 w-4 text-muted delay-1000 ${fade}`} />
+      {/* the name, a clear gap, then the manifesto */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-x-clip px-3">
+        <div aria-hidden="true">
+          <MaskName lines={NAME_LINES} revealed={revealed} className="cursor-target text-text" />
+        </div>
+        <ManifestoLine active={revealed} className={`mt-[6vh] delay-700 md:mt-[10vh] ${fade}`} />
+        {/* the scroll cue, centred under the line */}
+        <a href="#about" aria-label="Scroll down to About" className={`hero-scroll cursor-target pointer-events-auto mt-[4vh] delay-1000 ${fade}`}>
+          <span className="hero-scroll-mouse" aria-hidden="true" />
+          <span className="hero-scroll-label">Scroll</span>
+        </a>
       </div>
 
-      <div className={`pointer-events-none relative z-10 shrink-0 delay-700 ${fade}`}>
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 pb-12 sm:px-6 md:flex-row md:items-end md:justify-between md:gap-8">
-          <div className="max-w-xl">
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-line-strong px-3 py-1 font-mono text-[10px] tracking-[0.06em] text-muted uppercase">
-              <span className="size-1.5 animate-pulse rounded-full bg-blue" aria-hidden="true" />
-              Open to AI &amp; Growth PM roles
-            </p>
-            <p className="flex flex-wrap items-baseline gap-x-3 gap-y-2 font-display text-[clamp(1.1rem,2.2vw,1.7rem)] leading-tight text-text">
-              <span>
-                <span className="text-ai">AI</span> &amp; Growth PM building
-              </span>
-              {/* what I build, one word at a time: each unfolds like creased paper (React Bits Fold Text) */}
-              <FoldWords words={profile.focusAreas} active={revealed} className="basis-full text-ai" />
-            </p>
-          </div>
-
-          <div className="pointer-events-auto flex flex-wrap items-center gap-3">
-            <a href="#work" className="btn btn-primary cursor-target">
-              <Roll text="See my work" />
-              <Chip dir="s" />
-            </a>
-            <a href={profile.resumeUrl} download className="btn btn-line cursor-target">
-              <Roll text="Download resume" />
-            </a>
-          </div>
+      {/* the buttons */}
+      <div className={`relative z-10 flex shrink-0 justify-center px-4 pb-[6vh] delay-1000 ${fade}`}>
+        <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-3">
+          <a href="#work" className="btn btn-primary cursor-target">
+            <Roll text="See my work" />
+            <Chip dir="s" />
+          </a>
+          <a href={profile.resumeUrl} download className="btn btn-line cursor-target">
+            <Roll text="Download resume" />
+          </a>
         </div>
       </div>
     </section>

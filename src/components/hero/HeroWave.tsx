@@ -6,7 +6,8 @@ import { WAVE_THEMES } from "./waveThemes";
 
 /**
  * The hero's backdrop: Gauze Blaze (Originkit, hero-58), a WebGL ribbon of light that
- * leans toward the cursor. It follows the site's theme (remounted on a change so the canvas
+ * leans toward the cursor, shown dimmed (45% dark, 55% light) under the hero's type.
+ * It follows the site's theme (remounted on a change so the canvas
  * picks up the new ground), fades in as the intro reveals the page, and melts into the
  * page colour at the bottom so the next section starts clean. It pauses itself off screen.
  * Layer: z-0, above the 3D scene's canvas (-z-10), the film vignette (-z-[4]) and the page's
@@ -19,7 +20,10 @@ export default function HeroWave({ revealed }: { revealed: boolean }) {
       aria-hidden="true"
       className={`pointer-events-auto absolute inset-0 z-0 transition-opacity duration-[1600ms] ease-out ${revealed ? "opacity-100" : "opacity-0"}`}
     >
-      <GauzeBlaze key={theme} {...WAVE_THEMES[theme]} />
+      {/* dimmed so the name and the manifesto line read cleanly over it */}
+      <div className="absolute inset-0 opacity-[0.55] dark:opacity-45">
+        <GauzeBlaze key={theme} {...WAVE_THEMES[theme]} />
+      </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[24svh] bg-gradient-to-b from-transparent to-bg" />
     </div>
   );

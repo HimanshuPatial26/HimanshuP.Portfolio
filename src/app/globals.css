@@ -426,6 +426,48 @@ body {
   transform: translateY(-50%);
 }
 
+/* Hero name, "Mask": Syne ExtraBold capitals, centred; on entry each line slides up from behind
+   its own lower edge, and a hovered line opens its tracking a little. Only the words take the
+   pointer (the wave behind gets the rest). */
+.mask-name {
+  display: block;
+  font-family: var(--font-syne), "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(2.2rem, 10vw, 12.5rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  line-height: 0.86;
+  text-align: center;
+}
+.mask-line {
+  display: block;
+  overflow: hidden;
+  padding: 0 0.1em;
+  white-space: nowrap;
+}
+.mask-move {
+  display: inline-block;
+  pointer-events: auto;
+  transform: translateY(102%);
+  transition:
+    transform 1.1s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms),
+    letter-spacing 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mask-name[data-revealed] .mask-move {
+  transform: none;
+}
+@media (hover: hover) {
+  .mask-line:hover .mask-move {
+    letter-spacing: 0.01em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mask-move {
+    transform: none;
+    transition: none;
+  }
+}
+
 /* About statement (SweepText): a slanted band of light travels down the text with the scroll;
    above its edge the text is lit, below it waits dimmed, and the edge glints blue. Script moves
    --sweep from -14% to 114%; at rest (no script, reduced motion) it is fully lit. */
@@ -2073,6 +2115,183 @@ html.liquid-cursor :is(input, textarea, [contenteditable="true"]) {
 
   @media (prefers-reduced-motion: reduce) {
     .cn-in {
+      animation: none;
+    }
+  }
+}
+
+/* ---------------- Hero: the manifesto line ----------------
+   "I turn [X] into [Y]." Each slot is a reel holding every word (ManifestoLine.tsx rolls it one
+   row at a time); the slot is as wide as the word it shows (--mfw, measured) and eases to the
+   next one's width, its top and bottom edges fading so the rolling words come and go softly.
+   Under it, the pair's proof; under that, the scroll cue. */
+@layer components {
+  .mf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    pointer-events: auto; /* the hero lets the pointer through; the line takes it, so hover can hold it */
+  }
+  .mf-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    column-gap: 0.3em;
+    font-family: var(--font-syne), sans-serif;
+    font-size: clamp(1.15rem, 5.4vw, 1.6rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    color: var(--text);
+  }
+  @media (min-width: 768px) {
+    .mf-line {
+      font-size: clamp(1.25rem, 2.6vw, 2.9rem);
+    }
+  }
+  .mf-row {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .mf-lab {
+    margin-right: 0.18em;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .mf-slot {
+    position: relative;
+    display: inline-block;
+    box-sizing: content-box;
+    height: 1.14em;
+    padding: 0 0.28em;
+    width: var(--mfw, auto);
+    overflow: hidden;
+    transition: width 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+    -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+    mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+  }
+  .mf-reel {
+    position: absolute;
+    left: 0.28em;
+    top: 0.02em;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .mf-reel > span {
+    display: block;
+    width: max-content;
+    height: 1.14em;
+    white-space: nowrap;
+  }
+  /* brackets round what goes in, a highlight behind what comes out */
+  .mf-x::before,
+  .mf-x::after {
+    content: "";
+    position: absolute;
+    top: 0.1em;
+    bottom: 0.06em;
+    width: 0.16em;
+    border: 0.06em solid var(--text);
+  }
+  .mf-x::before {
+    left: 0;
+    border-right: 0;
+  }
+  .mf-x::after {
+    right: 0;
+    border-left: 0;
+  }
+  .mf-y {
+    color: var(--ai);
+  }
+  .mf-y::before {
+    content: "";
+    position: absolute;
+    inset: 0.1em 0 0.06em;
+    border-radius: 0.14em;
+    background: color-mix(in srgb, var(--ai) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ai) 45%, transparent);
+  }
+  .mf-dot {
+    color: var(--ai);
+  }
+  /* the pair's proof */
+  .mf-proof {
+    margin-top: 18px;
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    animation: mf-proof 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+  }
+  @keyframes mf-proof {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  /* the scroll cue: a mouse outline with a blue wheel-dot rolling down, and the word */
+  .hero-scroll {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .hero-scroll:hover,
+  .hero-scroll:focus-visible {
+    color: var(--text);
+  }
+  .hero-scroll-mouse {
+    position: relative;
+    width: 22px;
+    height: 34px;
+    border: 1.5px solid currentColor;
+    border-radius: 12px;
+  }
+  .hero-scroll-mouse::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 7px;
+    width: 3px;
+    height: 7px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background: var(--ai);
+    animation: hero-scroll 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  @keyframes hero-scroll {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    70% {
+      transform: translateY(11px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(11px);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mf-proof,
+    .hero-scroll-mouse::after {
       animation: none;
     }
   }
