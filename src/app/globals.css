@@ -432,7 +432,7 @@ body {
 .mask-name {
   display: block;
   font-family: var(--font-syne), "Helvetica Neue", Arial, sans-serif;
-  font-size: clamp(2.2rem, 10vw, 12.5rem);
+  font-size: clamp(2.2rem, min(10vw, 17svh), 12.5rem); /* the width sets it, but short screens cap it so the hero fits */
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: -0.05em;

@@ -7,6 +7,7 @@ export const profile = {
   location: "Sharjah, UAE",
   email: "hppatial@gmail.com",
   resumeUrl: "/Himanshu-Patial-Resume.pdf",
+  linkedin: "https://www.linkedin.com/in/himanshu-patial-8164b6149",
   summary:
     "Product Manager with 2+ years in EdTech, shipping AI/LLM products, payments, conversion and process automation across B2B and D2C. I pair product strategy with hands-on execution and let the data make the call. Three years in customer support before that taught me to start with the user.",
   focusAreas: [
