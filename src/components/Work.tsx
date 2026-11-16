@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
 import { caseStudies, experience, type CaseStudy, type Track } from "@/data/resume";
+import { useTuck } from "@/hooks/useTuck";
 
 const N = caseStudies.length;
 /** Leaves that turn: the cover plus every case but the last, whose page is glued to the back board. */
@@ -266,9 +267,12 @@ export default function Work() {
   const single = useSingle();
   const sectionRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
   const stepRef = useRef<(dir: number) => void>(() => {});
+  // the book starts a step below the heading, not a screen-centring further down
+  useTuck(pinRef, stageRef, single);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -502,7 +506,8 @@ export default function Work() {
 
   return (
     <section ref={sectionRef} id="work" data-shape="none" data-pose="deep" data-chapter="Work" data-chapter-no="03" className="relative">
-      <div className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
+      {/* drawn above the stage tucked up under it (useTuck) */}
+      <div className="pointer-events-none relative z-10 mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
         <SectionHeading
           index="03"
           eyebrow="Selected work"
@@ -514,6 +519,7 @@ export default function Work() {
       {/* pinned while the book turns: one screen of scroll per page */}
       <div ref={pinRef} className="relative" style={{ height: `calc(100svh + ${STATES - 1} * 100svh)` }}>
         <div
+          ref={stageRef}
           className="mg-stage sticky top-0 h-[100svh] overflow-hidden"
           role="region"
           aria-roledescription="magazine"
@@ -524,6 +530,7 @@ export default function Work() {
           <div
             ref={bookRef}
             key={single ? "one" : "spread"}
+            data-tuck=""
             className={`mg-book ${single ? "is-single" : ""}`}
             style={single ? undefined : { transform: "translate3d(-25%,0,0)" }}
           >

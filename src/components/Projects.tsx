@@ -8,6 +8,7 @@ import LoopVideo from "@/components/projects/LoopVideo";
 import { FilmDialog } from "@/components/projects/ProjectHero";
 import { BehrouzStage, FintechStage } from "@/components/projects/StageVisuals";
 import { academicProjects, builtProjects, type AcademicProject, type BuiltProject } from "@/data/projects";
+import { useTuck } from "@/hooks/useTuck";
 
 type Lenis = { scrollTo: (t: number, o?: object) => void };
 const lenis = () => (window as unknown as { __lenis?: Lenis }).__lenis;
@@ -143,7 +144,10 @@ export default function Projects() {
   const [film, setFilm] = useState<BuiltProject | null>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const pinRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const fillRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  // the stage starts a step below the heading, not a screen-centring further down
+  useTuck(pinRef, stageRef, desktop);
 
   // scroll → which project is on stage, and how far through it
   useEffect(() => {
@@ -201,7 +205,8 @@ export default function Projects() {
 
   return (
     <section id="projects" data-shape="none" data-chapter="Projects" data-chapter-no="04" className="relative">
-      <div className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
+      {/* drawn above the stage tucked up under it (useTuck) */}
+      <div className="pointer-events-none relative z-10 mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
         <SectionHeading
           index="04"
           eyebrow="Projects"
@@ -212,13 +217,13 @@ export default function Projects() {
 
       {/* ───────── desktop: the stage ───────── */}
       <div ref={pinRef} className="relative hidden md:block" style={{ height: `${ACTS.length * 92 + 8}svh` }}>
-        <div className="sticky top-0 h-[100svh] overflow-hidden" style={{ "--acc": a.accent.dark } as CSSProperties}>
+        <div ref={stageRef} className="sticky top-0 h-[100svh] overflow-hidden" style={{ "--acc": a.accent.dark } as CSSProperties}>
           {/* the room: one glow, its colour easing to each project's (a registered custom property) */}
           <div aria-hidden="true" className="stage-room pointer-events-none absolute inset-0" style={{ "--stage-glow": a.accent.dark } as CSSProperties} />
 
           <div className="relative mx-auto grid h-full max-w-7xl grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] items-center gap-10 px-6 pt-16 lg:gap-14">
             {/* left: the number, the name, the way in */}
-            <div className="relative">
+            <div className="relative" data-tuck="">
               <p className="font-mono text-[11px] tracking-[0.16em] text-faint uppercase">
                 04 / Projects · {String(active + 1).padStart(2, "0")} of {String(ACTS.length).padStart(2, "0")} · {a.group}
               </p>
@@ -261,7 +266,7 @@ export default function Projects() {
             </div>
 
             {/* right: the stage */}
-            <div className="relative">
+            <div className="relative" data-tuck="">
               <div className="[perspective:1400px]" onPointerMove={onTilt} onPointerLeave={() => setTilt({ x: 0, y: 0 })}>
                 <Link
                   href={a.href}

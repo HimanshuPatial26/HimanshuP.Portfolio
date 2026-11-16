@@ -8,6 +8,7 @@ import SectionHeading from "@/components/SectionHeading";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { education, experience, skills } from "@/data/resume";
 import { useTheme } from "@/hooks/useTheme";
+import { useTuck } from "@/hooks/useTuck";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -45,7 +46,8 @@ const panels: Panel[] = [
 
 function PanelCard({ p }: { p: Panel }) {
   const { theme } = useTheme();
-  const accentText = p.accent === "ai" ? "text-ai" : "text-growth";
+  // the outline names its colour: with text-transparent on the same element, currentColor would be transparent too
+  const accentStroke = p.accent === "ai" ? "[-webkit-text-stroke:1.5px_var(--ai)]" : "[-webkit-text-stroke:1.5px_var(--growth)]";
   return (
     <SpotlightCard
       theme={theme}
@@ -54,7 +56,7 @@ function PanelCard({ p }: { p: Panel }) {
     >
       <p
         aria-hidden="true"
-        className={`font-display text-[clamp(4rem,9vw,7.5rem)] leading-[0.8] font-extrabold tracking-[-0.05em] text-transparent [-webkit-text-stroke:1.5px_currentColor] ${accentText} opacity-80`}
+        className={`font-display text-[clamp(4rem,9vw,7.5rem)] leading-[0.8] font-extrabold tracking-[-0.05em] text-transparent ${accentStroke} opacity-80`}
       >
         {p.mark}
       </p>
@@ -180,8 +182,11 @@ function YearDial({ dialRef }: { dialRef: React.RefObject<HTMLDivElement | null>
 
 export default function Journey() {
   const pinRef = useRef<HTMLDivElement>(null);
+  const tuckRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const dialRef = useRef<HTMLDivElement>(null);
+  // the cards start a step below the heading, not a screen-centring further down
+  useTuck(tuckRef, pinRef);
 
   useLayoutEffect(() => {
     const pin = pinRef.current;
@@ -245,7 +250,8 @@ export default function Journey() {
       data-chapter-no="05"
       className="relative"
     >
-      <div className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
+      {/* drawn above the stage tucked up under it (useTuck) */}
+      <div className="pointer-events-none relative z-10 mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
         <SectionHeading
           index="05"
           eyebrow="Journey"
@@ -254,9 +260,12 @@ export default function Journey() {
         />
       </div>
 
-      <div ref={pinRef} className="relative md:flex md:h-[100svh] md:flex-col md:justify-center md:overflow-hidden">
+      {/* GSAP pins the inner box, so the tuck goes on this wrapper */}
+      <div ref={tuckRef}>
+        <div ref={pinRef} className="relative md:flex md:h-[100svh] md:flex-col md:justify-center md:overflow-hidden">
         <div
           ref={trackRef}
+          data-tuck=""
           className="flex flex-col gap-5 px-4 pb-24 sm:px-6 md:w-max md:flex-row md:items-stretch md:gap-6 md:pr-[12vw] md:pb-0 md:pl-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]"
         >
           {panels.map((p) => (
@@ -270,6 +279,7 @@ export default function Journey() {
         </div>
 
         <YearDial dialRef={dialRef} />
+        </div>
       </div>
     </section>
   );
