@@ -1870,3 +1870,210 @@ html.liquid-cursor :is(input, textarea, [contenteditable="true"]) {
     }
   }
 }
+
+/* ------------------------------------------------------------ Journey: the constellation */
+/* The chart is drawn on a canvas (components/journey/constellation.ts); these are its sky, the
+   chapter readout and the card beside it. */
+@layer components {
+  .cn-stage {
+    background: radial-gradient(80% 80% at 38% 55%, rgb(20 30 80 / 0.55), transparent 70%), #020205;
+    touch-action: pan-y;
+  }
+  :root[data-theme="light"] .cn-stage {
+    background: radial-gradient(80% 80% at 38% 55%, color-mix(in srgb, var(--ai) 9%, transparent), transparent 70%), var(--bg);
+  }
+  .cn-stage:focus-visible {
+    outline: 1px solid var(--line-strong);
+    outline-offset: -8px;
+  }
+  /* the sky fades in from the page at its top edge, so it never cuts a hard line under the heading */
+  .cn-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 1;
+    height: 22svh;
+    background: linear-gradient(var(--bg), transparent);
+    pointer-events: none;
+  }
+  .cn-hud,
+  .cn-card {
+    z-index: 2;
+  }
+  .cn-hud {
+    position: absolute;
+    top: 14svh;
+    left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    pointer-events: none;
+  }
+  .cn-chap {
+    font-weight: 500;
+    color: var(--text);
+  }
+  .cn-bar {
+    display: block;
+    width: 210px;
+    height: 2px;
+    margin-top: 6px;
+    background: var(--line-strong);
+  }
+  .cn-bar em {
+    display: block;
+    height: 100%;
+    background: var(--ai);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    box-shadow: 0 0 8px var(--ai);
+  }
+  .cn-card {
+    position: absolute;
+    top: 50%;
+    right: 4vw;
+    width: min(29vw, 430px);
+    max-height: 76svh;
+    padding: 24px 26px;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--surface) 84%, transparent);
+    box-shadow: 0 30px 80px rgb(0 0 0 / 0.55);
+    transform: translateY(-46%);
+    /* no backdrop blur: it would re-blur the moving sky under it every frame */
+  }
+  :root[data-theme="light"] .cn-card {
+    box-shadow: 0 30px 70px rgb(0 0 0 / 0.18);
+  }
+  .cn-in {
+    animation: cn-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes cn-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .cn-tag {
+    padding: 2px 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-family: var(--font-syne), sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+  .cn-ai {
+    color: var(--ai);
+  }
+  .cn-growth {
+    color: var(--growth);
+  }
+  .cn-study {
+    color: var(--muted);
+  }
+  .cn-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 22px;
+    margin-top: 20px;
+  }
+  .cn-stats dt {
+    font-family: var(--font-syne), sans-serif;
+    font-size: clamp(20px, 1.8vw, 28px);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .cn-stats dd {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--faint);
+  }
+  .cn-points {
+    display: grid;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .cn-points li {
+    position: relative;
+    padding-left: 16px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  .cn-points li::before {
+    content: "";
+    position: absolute;
+    top: 0.6em;
+    left: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--ai);
+  }
+  .cn-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .cn-skills li {
+    padding: 3px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* phones: the chart across the top, the card as a sheet below it */
+  @media (max-width: 767px) {
+    .cn-hud {
+      top: 11svh;
+      left: 16px;
+      font-size: 10px;
+    }
+    .cn-bar {
+      width: 160px;
+    }
+    .cn-card {
+      top: auto;
+      right: 12px;
+      bottom: 12px;
+      left: 12px;
+      width: auto;
+      max-height: 50svh;
+      padding: 16px 18px;
+      overflow-y: auto;
+      transform: none;
+    }
+    .cn-stats {
+      gap: 10px 16px;
+      margin-top: 14px;
+    }
+    .cn-points {
+      margin-top: 12px;
+    }
+    .cn-points li:nth-child(n + 3) {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cn-in {
+      animation: none;
+    }
+  }
+}
