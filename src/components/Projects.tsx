@@ -6,7 +6,8 @@ import { Chip, Ring, Roll } from "@/components/Buttons";
 import SectionHeading from "@/components/SectionHeading";
 import LoopVideo from "@/components/projects/LoopVideo";
 import { FilmDialog } from "@/components/projects/ProjectHero";
-import { BehrouzStage, FintechStage } from "@/components/projects/StageVisuals";
+import { BehrouzStage } from "@/components/projects/StageVisuals";
+import FintechCard from "@/components/projects/FintechCard";
 import { academicProjects, builtProjects, type AcademicProject, type BuiltProject } from "@/data/projects";
 import { useTuck } from "@/hooks/useTuck";
 
@@ -104,7 +105,7 @@ function Morph({ name, on, children }: { name: string; on: boolean; children: Re
 /** The project's picture: its film loop, or the drawn visual for the Master's projects. */
 function Visual({ a, active }: { a: Act; active: boolean }) {
   if (a.built) return <LoopVideo src={a.built.video.loop} webm={a.built.video.loopWebm} poster={a.built.video.loopPoster} active={active} className="absolute inset-0 size-full object-cover" />;
-  if (a.id === "fintech-adoption") return <FintechStage active={active} />;
+  if (a.id === "fintech-adoption") return <FintechCard active={active} />;
   return <BehrouzStage active={active} />;
 }
 
