@@ -1,250 +1,443 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
-import { Chip, Ico, Roll } from "@/components/Buttons";
-import DecodeText from "@/components/DecodeText";
-import { caseStudies, type Track } from "@/data/resume";
-import { BOOT_LOCK, LOCK_MS, createRadar, type Blip, type Tone } from "@/components/radar/radar";
+import { caseStudies, experience, type CaseStudy, type Track } from "@/data/resume";
 
 const N = caseStudies.length;
+/** Leaves that turn: the cover plus every case but the last, whose page is glued to the back board. */
+const LEAVES = N;
+/** Places the book rests: closed on its cover, then open on each case. */
+const STATES = N + 1;
+const ROLE = `${experience[0].title}, ${experience[0].company}`;
 const pad = (i: number) => String(i + 1).padStart(2, "0");
-/** How long a case stays locked before its live figure takes over from the still. */
-const LIVE_AFTER = 1400;
-
-/**
- * Where each case sits on the radar: bearing in degrees (clockwise from the right, seen from
- * above) and range as a share of the radius. AI work fills the left-hand sector and growth work
- * the right; AI-Convert, which did both, sits on the line between them.
- */
-const PLOT: Record<string, [number, number]> = {
-  "doubt-mate": [188, 0.62],
-  "call-analysis": [230, 0.84],
-  "ai-convert": [270, 0.5],
-  "payment-recovery": [306, 0.8],
-  "crm-lms": [340, 0.58],
-  "super-coaching": [16, 0.86],
-};
-const toneOf = (t: Track[]): Tone => (t.length > 1 ? "both" : t[0] === "AI" ? "ai" : "growth");
-const BLIPS: Blip[] = caseStudies.map((c, i) => {
-  const [bearing, range] = PLOT[c.id] ?? [(i * 60) % 360, 0.7];
-  return { bearing, range, tone: toneOf(c.tracks), label: `${pad(i)} ${c.name.toUpperCase()}` };
-});
 /** The still of a case's live figure: /figures/x.html -> /figures/stills/x.jpg */
 const stillOf = (figure?: string) => (figure ? figure.replace(/\/([^/]+)\.html$/, "/stills/$1.jpg") : null);
+const isAI = (c: CaseStudy) => c.tracks.includes("AI");
+const gradeOf = (c: CaseStudy) => (c.tracks.length > 1 ? "" : isAI(c) ? "ai" : "growth");
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+
+/** Headline results on the cover. */
+const COVER_LINES: { id: string; big: string; text: string }[] = [
+  { id: "ai-convert", big: "₹4M a month", text: "AI-Convert, the conversion engine" },
+  { id: "crm-lms", big: "+30%", text: "agent productivity from the CRM" },
+  { id: "payment-recovery", big: "+10–15%", text: "more successful payments" },
+];
+
+/** Narrow or portrait screens get a one-page book: a spread won't fit. */
+const SINGLE_QUERY = "(max-width: 899px), (max-aspect-ratio: 1/1)";
+const subscribeSingle = (cb: () => void) => {
+  const m = window.matchMedia(SINGLE_QUERY);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
+const useSingle = () =>
+  useSyncExternalStore(
+    subscribeSingle,
+    () => window.matchMedia(SINGLE_QUERY).matches,
+    () => false,
+  );
 
 const trackStyle: Record<Track, string> = {
   AI: "border-ai/50 text-ai",
   Growth: "border-growth/50 text-growth",
 };
-
 function Tags({ tracks }: { tracks: Track[] }) {
   return (
-    <>
+    <span className="inline-flex gap-1.5">
       {tracks.map((t) => (
-        <span key={t} className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] tracking-wide uppercase ${trackStyle[t]}`}>
+        <span key={t} className={`rounded-full border px-2 py-px font-mono text-[10px] tracking-wide uppercase ${trackStyle[t]}`}>
           {t}
         </span>
       ))}
-    </>
+    </span>
   );
 }
 
-/** A readout value: digits scramble while the lock closes in, then settle. */
-function Readout({ value, settled }: { value: string; settled: boolean }) {
-  const [noise, setNoise] = useState(value);
-  useEffect(() => {
-    if (settled) return;
-    const id = window.setInterval(() => setNoise(value.replace(/\d/g, () => String(Math.floor(Math.random() * 10)))), 45);
-    return () => window.clearInterval(id);
-  }, [value, settled]);
-  return <b>{settled ? value : noise}</b>;
-}
+// ---------------------------------------------------------------- the pages
 
-/** The numbers in a result count up from zero once the lock settles; screen readers get the real text. */
-function CountUp({ text, run }: { text: string; run: boolean }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!run || reduced) {
-      el.textContent = run || reduced ? text : " ";
-      return;
-    }
-    const parts = text.split(/(\d+)/);
-    const t0 = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      const k = Math.min(1, (now - t0) / 700);
-      const e = 1 - Math.pow(1 - k, 3);
-      el.textContent = parts.map((s, i) => (i % 2 ? String(Math.round(Number(s) * e)) : s)).join("");
-      if (k < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [text, run]);
+function Cover() {
   return (
-    <>
-      <span className="sr-only">{text}</span>
-      <span ref={ref} aria-hidden="true" />
-    </>
+    <div className="mg-pg mg-cv">
+      <div className="mg-row mg-mono">
+        <span>Issue 03</span>
+        <span>Himanshu Patial</span>
+      </div>
+      <p className="mg-mast" aria-hidden="true">
+        Selected<span>Work</span>
+      </p>
+      <div className="mg-mosaic" aria-hidden="true">
+        {caseStudies.map((c, k) => {
+          const still = stillOf(c.figure);
+          return (
+            <figure key={c.id}>
+              {still && <Image src={still} alt="" fill sizes="180px" className="object-cover" />}
+              <span className="mg-mono">{pad(k)}</span>
+            </figure>
+          );
+        })}
+      </div>
+      <ul className="mg-lines">
+        {COVER_LINES.map((l) => (
+          <li key={l.id}>
+            <b className={l.id === "ai-convert" ? "text-ai" : ""}>{l.big}</b>
+            {l.text}
+          </li>
+        ))}
+      </ul>
+      <div className="mg-row mg-mono mg-foot">
+        <span>Six products I shipped</span>
+        <b>Scroll to open ↓</b>
+      </div>
+    </div>
   );
 }
 
-/** Scroll so case i is on: the middle of its step under the pinned screen. */
-function scrollToCase(pin: HTMLElement | null, i: number) {
-  if (!pin) return;
-  const r = pin.getBoundingClientRect();
-  const k = Math.max(0, Math.min(N - 1, i));
-  const y = r.top + window.scrollY + ((k + 0.5) / N) * (r.height - window.innerHeight);
-  const lenis = (window as unknown as { __lenis?: { scrollTo: (t: number, o?: object) => void } }).__lenis;
-  if (lenis) lenis.scrollTo(y, { immediate: true });
-  else window.scrollTo({ top: y, behavior: "instant" });
+function Result({ c, className = "" }: { c: CaseStudy; className?: string }) {
+  return (
+    <div className={`mg-pull ${isAI(c) ? "is-ai" : ""} ${className}`}>
+      <p className="mg-micro">Result</p>
+      <p className={`mg-res ${c.resultIsMetric ? "" : "is-text"} ${isAI(c) ? "text-ai" : "text-growth"}`}>{c.result}</p>
+    </div>
+  );
+}
+
+/** The figure: its still, with the live page laid over it once it's loaded (src set by the book). */
+function Plate({ c, k }: { c: CaseStudy; k: number }) {
+  const still = stillOf(c.figure);
+  return (
+    <figure className="mg-plate">
+      {still && <Image src={still} alt="" fill sizes="(min-width: 900px) 560px, 92vw" className="object-cover" />}
+      {c.figure && <iframe className="mg-live" data-k={k} data-src={c.figure} title={`${c.name}, animated`} tabIndex={-1} aria-hidden="true" />}
+      <span className="mg-badge mg-mono" aria-hidden="true">
+        <i />
+        Live
+      </span>
+    </figure>
+  );
+}
+
+function CaseLink({ c }: { c: CaseStudy }) {
+  return (
+    <Link href={`/work/${c.id}`} className="mg-cta cursor-target">
+      Read the case study →
+    </Link>
+  );
+}
+
+/** Left page of a spread: the story. */
+function StoryPage({ c, k }: { c: CaseStudy; k: number }) {
+  return (
+    <div className="mg-pg mg-l">
+      <div className="mg-row mg-mono mg-head">
+        <span>Selected work</span>
+        <span>{pad(k)} / 06</span>
+      </div>
+      <span className="mg-num" aria-hidden="true">
+        {pad(k)}
+      </span>
+      <h3 className="mg-name">{c.name}</h3>
+      <div className="mg-kind">
+        {c.kind} <Tags tracks={c.tracks} />
+      </div>
+      <Result c={c} />
+      <div className="mg-cols">
+        <div>
+          <p className="mg-micro">The problem</p>
+          <p className="mg-drop">{c.problem}</p>
+        </div>
+        <div>
+          <p className="mg-micro">What I built</p>
+          <p>{c.built}</p>
+        </div>
+      </div>
+      <div className="mg-row mg-mono mg-foot">
+        <span>Himanshu Patial</span>
+        <span>{2 + 2 * k}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Right page of a spread: the figure, running live. */
+function FigurePage({ c, k }: { c: CaseStudy; k: number }) {
+  return (
+    <div className="mg-pg mg-r">
+      <div className="mg-row mg-mono mg-head">
+        <span>{c.kind}</span>
+        <span>Fig. {pad(k)}</span>
+      </div>
+      <Plate c={c} k={k} />
+      <p className="mg-cap mg-mono">
+        Fig. {pad(k)} — {c.name}, running live
+      </p>
+      <dl className="mg-spec">
+        <dt className="mg-mono">Track</dt>
+        <dd>
+          <Tags tracks={c.tracks} />
+        </dd>
+        <dt className="mg-mono">Role</dt>
+        <dd>{ROLE}</dd>
+      </dl>
+      <div className="mg-act">
+        <CaseLink c={c} />
+        <span className="mg-mono mg-turn">{k < N - 1 ? "Scroll to turn ↓" : "End of section"}</span>
+      </div>
+      <div className="mg-row mg-mono mg-foot">
+        <span>Product · AI &amp; growth</span>
+        <span>{3 + 2 * k}</span>
+      </div>
+    </div>
+  );
+}
+
+/** A case on one page, for the one-page book. */
+function OnePage({ c, k }: { c: CaseStudy; k: number }) {
+  return (
+    <div className="mg-pg mg-one">
+      <div className="mg-row mg-mono mg-head">
+        <span>
+          Selected work · {pad(k)} / 06
+        </span>
+        <Tags tracks={c.tracks} />
+      </div>
+      <h3 className="mg-name">{c.name}</h3>
+      <p className="mg-kind">{c.kind}</p>
+      <Plate c={c} k={k} />
+      <Result c={c} />
+      <div className="mg-cols">
+        <div>
+          <p className="mg-micro">The problem</p>
+          <p>{c.problem}</p>
+        </div>
+        <div>
+          <p className="mg-micro">What I built</p>
+          <p>{c.built}</p>
+        </div>
+      </div>
+      <div className="mg-act">
+        <CaseLink c={c} />
+        <span className="mg-mono mg-turn">{k < N - 1 ? "Scroll ↓" : "End"}</span>
+      </div>
+    </div>
+  );
+}
+
+/** The back of a page in the one-page book: plain paper, seen only mid-turn. */
+function PaperBack({ k }: { k: number }) {
+  return (
+    <div className="mg-pg mg-paper">
+      <span className="mg-mono">Himanshu Patial · {k + 1}</span>
+    </div>
+  );
+}
+
+function Leaf({ j, front, back }: { j: number; front: ReactNode; back: ReactNode }) {
+  return (
+    <div className="mg-leaf" style={{ zIndex: 100 - j }}>
+      <div className="mg-face mg-front">
+        {front}
+        <i className="mg-shade" />
+        <i className="mg-gloss" />
+      </div>
+      <div className="mg-face mg-back">
+        {back}
+        <i className="mg-shade" />
+        <i className="mg-gloss" />
+      </div>
+    </div>
+  );
 }
 
 /**
- * Selected work as a radar. The six cases stand on a holographic table, AI work in one sector and
- * growth work in the other, and the section pins for one short scroll step per case. Arriving boots
- * the radar; each step locks on to the next case, and the readout beside it draws the case in: the
- * name decodes, the figure scans in from its still and then plays live, and the result counts up.
- * Hover a post for a preview, click it (or the numbers, or the arrows, or use the arrow keys) to go
- * straight to it. The radar is drawn in ./radar/radar.ts; the chrome object stays away
- * (data-shape="none") so the 3D scene rests while the radar runs.
+ * Selected work as a printed magazine. The section pins while the book turns: it opens on its cover,
+ * then each case is a spread, the story on the left page and its figure running live on the right
+ * (one page per case on phones and portrait screens). The scroll turns the pages: the page follows
+ * the scroll smoothly, never faster than about a page and a half a second, and if you stop part-way
+ * it carries on the way you were going and settles flat. Arrow keys or a click turn one page.
+ *
+ * It's a real book: each leaf carries its two pages and only ever rotates, so a live figure keeps
+ * running through a turn and never reloads. The figure on show and the one either side stay loaded;
+ * the rest stay as stills. The chrome object stays away (data-shape="none") while the book is up.
  */
 export default function Work() {
+  const single = useSingle();
   const sectionRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const hudRef = useRef<HTMLElement>(null);
-  const peekRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-  const [booted, setBooted] = useState(false);
-  const [locked, setLocked] = useState(false);
-  const [live, setLive] = useState(false);
-  const [liveReady, setLiveReady] = useState("");
-  const [peek, setPeek] = useState(-1);
+  const bookRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  const stepRef = useRef<(dir: number) => void>(() => {});
 
   useEffect(() => {
     const section = sectionRef.current;
     const pin = pinRef.current;
-    const stage = stageRef.current;
-    const canvas = canvasRef.current;
-    const hud = hudRef.current;
-    const peekEl = peekRef.current;
-    if (!section || !pin || !stage || !canvas || !hud || !peekEl) return;
-    const radar = createRadar(canvas, BLIPS);
-    radar.theme();
+    const book = bookRef.current;
+    const status = statusRef.current;
+    if (!section || !pin || !book || !status) return;
+    const leaves = [...book.querySelectorAll<HTMLElement>(":scope > .mg-leaf")];
+    const base = book.querySelector<HTMLElement>(":scope > .mg-base")!;
+    const faces = leaves.map((L) => [L.querySelector<HTMLElement>(".mg-front")!, L.querySelector<HTMLElement>(".mg-back")!] as const);
+    // per leaf: front shade, front gloss, back shade, back gloss
+    const shades = leaves.map((L) => [...L.querySelectorAll<HTMLElement>(":scope > .mg-face > i")]);
+    const q = (s: string) => book.querySelector<HTMLElement>(s);
+    const castL = q(".mg-cast.l"), castR = q(".mg-cast.r"), spine = q(".mg-spine"), floorL = q(".mg-floor.l"), edgeL = q(".mg-edge.l"), edgeR = q(".mg-edge.r");
+    const frames = [...book.querySelectorAll<HTMLIFrameElement>("iframe[data-k]")].sort((a, b) => Number(a.dataset.k) - Number(b.dataset.k));
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const pointer = { x: 0, y: 0, inside: false, lean: fine && !reduced };
-    let W = 1;
-    let H = 1;
-    // once the radar reports nothing moving, it isn't redrawn until something changes (dirty)
-    let idle = false;
-    let dirty = true;
-    const layout = () => {
-      const r = stage.getBoundingClientRect();
-      W = r.width;
-      H = r.height;
-      radar.resize(W, H);
-      dirty = true;
-    };
-    layout();
-    const ro = new ResizeObserver(layout);
-    ro.observe(stage);
+    const lenis = () => (window as unknown as { __lenis?: { scrollTo: (t: number, o?: object) => void } }).__lenis;
 
+    // ---- where the scroll says the book should be ----
+    // Each turn gets an equal stretch of scroll; a sliver at each end holds the page flat so it rests
+    // cleanly, and the rest turns it, so the page starts to lift as soon as you scroll.
+    const progress = () => {
+      const r = pin.getBoundingClientRect();
+      return clamp(-r.top / Math.max(1, r.height - window.innerHeight), 0, 1);
+    };
+    const posOf = (p: number) => {
+      const u = p * (STATES - 1);
+      const k = Math.min(STATES - 2, Math.floor(u));
+      return k + clamp((u - k - 0.1) / 0.8, 0, 1);
+    };
+    const yOf = (s: number) => {
+      const r = pin.getBoundingClientRect();
+      return r.top + window.scrollY + (clamp(s, 0, STATES - 1) / (STATES - 1)) * (r.height - window.innerHeight);
+    };
+    // (set below) the scroll's last movement: a glide counts as one, the way it's heading
+    let lastMove = 0;
+    let dir = 1;
+    const glideTo = (s: number) => {
+      const y = yOf(s);
+      lastMove = performance.now();
+      dir = Math.sign(y - window.scrollY) || dir;
+      const l = lenis();
+      if (l) l.scrollTo(y, { duration: 1.1 });
+      else window.scrollTo({ top: y, behavior: reduced ? "instant" : "smooth" });
+    };
+
+    // live figures: the case on show and its neighbours either side are loaded, so a turn never waits
+    let liveAt = -9;
+    const onLoad = (e: Event) => {
+      const f = e.currentTarget as HTMLIFrameElement;
+      if (f.dataset.on) window.setTimeout(() => f.dataset.on && f.classList.add("is-on"), 150);
+    };
+    frames.forEach((f) => f.addEventListener("load", onLoad));
+    const live = (s: number) => {
+      if (s === liveAt) return;
+      liveAt = s;
+      frames.forEach((f, k) => {
+        if (s >= 0 && Math.abs(k - (s - 1)) <= 1) {
+          if (!f.dataset.on) {
+            f.dataset.on = "1";
+            f.src = f.dataset.src!;
+          }
+        } else if (f.dataset.on) {
+          delete f.dataset.on;
+          f.classList.remove("is-on");
+          f.src = "about:blank";
+        }
+      });
+    };
+
+    // ---- drawing the book at a position: 0 = closed on the cover, s = open on case s ----
+    // a heavy page: it eases off the book and down onto the other side, with an even swing between
+    const ease = (t: number) => (1 - Math.cos(Math.PI * t)) / 2;
+    const tri = (v: number, c: number, w: number) => Math.max(0, 1 - Math.abs(v - c) / w);
+    const setO = (el: HTMLElement | null, v: number) => {
+      if (el) el.style.opacity = v.toFixed(3);
+    };
+    const inertNow = leaves.map(() => [false, false]);
+    let onCase = -1;
+    const draw = (X: number) => {
+      const j = Math.min(LEAVES - 1, Math.floor(X));
+      const t = clamp(X - j, 0, 1);
+      const e = ease(t);
+      leaves.forEach((L, i) => {
+        const ti = clamp(X - i, 0, 1);
+        const ei = ease(ti);
+        const moving = ti > 0 && ti < 1;
+        L.style.transform = `rotateY(${(-180 * ei).toFixed(2)}deg)`;
+        L.style.zIndex = String(moving ? 300 : ti >= 1 ? 10 + i : 100 - i);
+        // only what you can see is drawn: the open pages, and the page under the one that's turning
+        const shown = i === j || (i === j + 1 && t > 0) || (!single && i === j - 1);
+        L.classList.toggle("is-hidden", !shown);
+        // only the side facing you can be reached (keyboard, screen readers)
+        const turned = ti >= 0.5;
+        if (inertNow[i][0] !== turned) faces[i][0].inert = inertNow[i][0] = turned;
+        if (inertNow[i][1] !== !turned) faces[i][1].inert = inertNow[i][1] = !turned;
+        const [fs, fg, bs, bg] = shades[i];
+        setO(fs, moving ? Math.min(0.5, ei) : 0);
+        setO(bs, moving ? Math.min(0.5, 1 - ei) : 0);
+        setO(fg, moving ? tri(ei, 0.36, 0.16) : 0);
+        setO(bg, moving ? 0.8 * tri(ei, 0.64, 0.16) : 0);
+      });
+      base.classList.toggle("is-hidden", !(j === LEAVES - 1 && t > 0));
+      // the lifting page throws a shadow on the page it uncovers, then on the page it comes down on
+      const turning = t > 0 && t < 1;
+      setO(castR, turning ? 0.85 * clamp(1 - e / 0.62, 0, 1) : 0);
+      setO(castL, turning && j > 0 && !single ? 0.65 * clamp((e - 0.58) / 0.32, 0, 1) * clamp((1 - e) / 0.08, 0, 1) : 0);
+      if (!single) {
+        // closed, the book sits centred on its cover; it slides to the middle as the cover opens
+        const open = ease(clamp(X, 0, 1));
+        book.style.transform = `translate3d(${(-25 * (1 - open)).toFixed(3)}%,0,0)`;
+        setO(floorL, open);
+        setO(spine, open);
+        if (edgeL) edgeL.style.width = `${(X * 1.5).toFixed(2)}px`;
+        if (edgeR) edgeR.style.width = `${((LEAVES - X + 1) * 1.5).toFixed(2)}px`;
+      }
+      const s = Math.round(X);
+      live(s);
+      if (s !== onCase) {
+        onCase = s;
+        const c = s > 0 ? caseStudies[s - 1] : null;
+        // the page's light follows the case: blue for AI, chrome for growth, neutral for both
+        section.dataset.grade = c ? gradeOf(c) : "";
+        status.textContent = c ? `Case ${s} of ${N}: ${c.name}` : "Cover";
+      }
+    };
+
+    // ---- the loop: the book follows the scroll, eased and capped in speed ----
+    const SPEED = 1.5; // pages a second, at most
+    const FOLLOW = 9;
+    let x = NaN;
+    let drawn = NaN;
+    let lastY = window.scrollY;
+    let settling = false;
     let raf = 0;
     let last = performance.now();
     let near = false;
-    let armed = true; // the next arrival boots the radar
-    let bootAt = 0;
-    let activeNow = -1;
-    let lockAt = -1e9;
-    let lockedNow = false;
-    let liveNow = false;
-    let bootedNow = false;
-    let hoverNow = -1;
-
     const tick = (now: number) => {
       raf = 0;
       if (!near || document.hidden) return;
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      const vh = window.innerHeight;
-      const pr = pin.getBoundingClientRect();
-      // arriving (and not hidden behind the chapter card) boots it; leaving re-arms the boot
-      const seen = pr.top < vh * 0.4 && pr.bottom > vh * 0.6 && !section.hasAttribute("data-veiled");
-      if (seen && armed) {
-        armed = false;
-        bootAt = now;
-        radar.boot(now);
-        activeNow = -1;
-        dirty = true;
-        if (bootedNow) {
-          bootedNow = false;
-          setBooted(false);
+      // read the scroll here rather than from scroll events, which arrive a frame late: a glide
+      // that has just started must already count as movement, or it would be "settled" straight back
+      const y = window.scrollY;
+      if (y !== lastY) {
+        dir = Math.sign(y - lastY);
+        lastY = y;
+        lastMove = now;
+      }
+      const target = posOf(progress());
+      if (Number.isNaN(x) || reduced) x = reduced ? Math.round(target) : target;
+      else {
+        x += clamp((target - x) * (1 - Math.exp(-FOLLOW * dt)), -SPEED * dt, SPEED * dt);
+        if (Math.abs(target - x) < 0.0004) x = target;
+      }
+      if (x !== drawn) {
+        drawn = x;
+        draw(x);
+      }
+      // stopped part-way through a turn: the page carries on the way you were scrolling and settles
+      // flat. It waits for a real stop, so it never tugs against a slow scroll.
+      const frac = target - Math.floor(target);
+      if (!reduced && now - lastMove > 320 && frac > 0.001 && frac < 0.999) {
+        if (!settling) {
+          settling = true;
+          glideTo(dir > 0 ? (frac > 0.06 ? Math.ceil(target) : Math.floor(target)) : frac < 0.94 ? Math.floor(target) : Math.ceil(target));
         }
-      }
-      if (!seen && (pr.top > vh * 0.9 || pr.bottom < vh * 0.1)) armed = true;
-      // which case the scroll is on: each gets an equal step, so it switches at once
-      const p = Math.min(1, Math.max(0, -pr.top / Math.max(1, pr.height - vh)));
-      const want = Math.min(N - 1, Math.floor(p * N));
-      if (!armed && (reduced || now - bootAt >= BOOT_LOCK) && want !== activeNow) {
-        activeNow = want;
-        lockAt = now;
-        lockedNow = reduced;
-        liveNow = false;
-        dirty = true;
-        setActive(want);
-        setLocked(reduced);
-        setLive(false);
-        if (!bootedNow) {
-          bootedNow = true;
-          setBooted(true);
-        }
-      }
-      if (activeNow >= 0 && !lockedNow && now - lockAt >= LOCK_MS) {
-        lockedNow = true;
-        setLocked(true);
-      }
-      if (activeNow >= 0 && !liveNow && now - lockAt >= LIVE_AFTER) {
-        liveNow = true;
-        dirty = true;
-        setLive(true);
-      }
-      // nothing moving on the radar: leave the frame to the live figure
-      if (idle && !dirty) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      dirty = false;
-      // the leader runs to the readout's top-left corner (side by side only, not on phones)
-      let anchor: { x: number; y: number } | null = null;
-      if (W >= 768 && bootedNow) {
-        const h = hud.getBoundingClientRect();
-        const s = stage.getBoundingClientRect();
-        anchor = { x: h.left - s.left, y: h.top - s.top + 30 };
-      }
-      // once the live figure has taken over, the beam swings onto the case and holds there
-      const out = radar.frame({ now, dt, active: activeNow, lockAt, anchor, reduced, pointer, hold: liveNow });
-      idle = out.idle;
-      if (out.hover !== hoverNow) {
-        hoverNow = out.hover;
-        canvas.style.cursor = hoverNow >= 0 ? "pointer" : "";
-        setPeek(hoverNow >= 0 && hoverNow !== activeNow ? hoverNow : -1);
-      }
-      // the preview card rides beside its post
-      if (hoverNow >= 0 && hoverNow !== activeNow) {
-        const [x, y] = out.tops[hoverNow];
-        const w = peekEl.offsetWidth;
-        const h = peekEl.offsetHeight;
-        const px = Math.min(Math.max(x + 18, 12), W - w - 12);
-        const py = Math.min(Math.max(y - h - 18, 80), H - h - 12);
-        peekEl.style.transform = `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px)`;
-      }
+      } else if (now - lastMove <= 320) settling = false;
       raf = requestAnimationFrame(tick);
     };
     const run = () => {
@@ -253,81 +446,62 @@ export default function Work() {
         raf = requestAnimationFrame(tick);
       }
     };
-    // draw only while the radar is on (or about to come on) screen
+    // runs only while the book is on (or about to come on) screen; off screen, the live figures unload
     const io = new IntersectionObserver(
-      ([e]) => {
-        near = e.isIntersecting;
-        run();
+      ([en]) => {
+        near = en.isIntersecting;
+        if (near) run();
+        else {
+          live(-9);
+          drawn = NaN;
+        }
       },
-      { rootMargin: "120px 0px" },
+      { rootMargin: "200px 0px" },
     );
     io.observe(pin);
-
-    const onMove = (e: PointerEvent) => {
-      const r = stage.getBoundingClientRect();
-      pointer.x = e.clientX - r.left;
-      pointer.y = e.clientY - r.top;
-      pointer.inside = e.target === canvas && e.pointerType === "mouse";
-      dirty = true;
-    };
-    const onLeave = () => {
-      pointer.inside = false;
-      dirty = true;
-    };
+    stepRef.current = (d: number) => glideTo(Math.round(posOf(progress())) + d);
     const onClick = (e: MouseEvent) => {
-      if (e.target !== canvas) return;
-      const r = stage.getBoundingClientRect();
-      const i = radar.pick(e.clientX - r.left, e.clientY - r.top, fine ? 30 : 44);
-      if (i >= 0) scrollToCase(pin, i);
+      if ((e.target as HTMLElement).closest("a")) return;
+      const r = book.getBoundingClientRect();
+      const at = Math.round(posOf(progress()));
+      const forward = single ? e.clientX > r.left + r.width / 3 : at === 0 || e.clientX > r.left + r.width / 2;
+      stepRef.current(forward ? 1 : -1);
     };
-    const onTheme = () => {
-      radar.theme();
-      dirty = true;
-    };
-    stage.addEventListener("pointermove", onMove);
-    stage.addEventListener("pointerleave", onLeave);
-    stage.addEventListener("click", onClick);
-    window.addEventListener("themechange", onTheme);
+    book.addEventListener("click", onClick);
     document.addEventListener("visibilitychange", run);
     return () => {
       cancelAnimationFrame(raf);
       io.disconnect();
-      ro.disconnect();
-      stage.removeEventListener("pointermove", onMove);
-      stage.removeEventListener("pointerleave", onLeave);
-      stage.removeEventListener("click", onClick);
-      window.removeEventListener("themechange", onTheme);
+      book.removeEventListener("click", onClick);
       document.removeEventListener("visibilitychange", run);
+      frames.forEach((f) => f.removeEventListener("load", onLoad));
     };
-  }, []);
+  }, [single]);
 
-  const go = (i: number) => scrollToCase(pinRef.current, i);
-  // arrow keys step through the cases while focus is in the radar
+  // arrow keys turn one page while focus is on the book
   const onKey = (e: KeyboardEvent) => {
-    const dir = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
-    if (!dir) return;
+    const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!d) return;
     e.preventDefault();
-    go(active + dir);
+    stepRef.current(d);
   };
 
-  const c = caseStudies[active];
-  const isAI = c.tracks.includes("AI");
-  // the page's light follows the case on screen: blue for AI, chrome for growth, neutral for both
-  const grade = c.tracks.length > 1 ? "" : isAI ? "ai" : "growth";
-  const blip = BLIPS[active];
-  const pc = peek >= 0 ? caseStudies[peek] : null;
+  // the pages in reading order, bound onto leaves: leaf j carries page 2j and page 2j+1 (one page per
+  // leaf in the one-page book, with plain paper behind); the last page is glued to the back board
+  const leaves: ReactNode[] = [];
+  let backBoard: ReactNode;
+  if (single) {
+    const pages = [<Cover key="cover" />, ...caseStudies.map((c, k) => <OnePage key={c.id} c={c} k={k} />)];
+    for (let j = 0; j < LEAVES; j++) leaves.push(<Leaf key={j} j={j} front={pages[j]} back={<PaperBack k={j} />} />);
+    backBoard = pages[LEAVES];
+  } else {
+    const pages = [<Cover key="cover" />, ...caseStudies.flatMap((c, k) => [<StoryPage key={`${c.id}-l`} c={c} k={k} />, <FigurePage key={`${c.id}-r`} c={c} k={k} />])];
+    for (let j = 0; j < LEAVES; j++) leaves.push(<Leaf key={j} j={j} front={pages[2 * j]} back={pages[2 * j + 1]} />);
+    backBoard = pages[2 * LEAVES];
+  }
 
   return (
-    <section
-      ref={sectionRef}
-      id="work"
-      data-shape="none"
-      data-pose="deep"
-      data-grade={grade}
-      data-chapter="Work"
-      data-chapter-no="03"
-      className="relative"
-    >
+    <section ref={sectionRef} id="work" data-shape="none" data-pose="deep" data-chapter="Work" data-chapter-no="03" className="relative">
       <div className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32">
         <SectionHeading
           index="03"
@@ -337,100 +511,35 @@ export default function Work() {
         />
       </div>
 
-      {/* pinned for one short scroll step per case */}
-      <div ref={pinRef} className="relative" style={{ height: `calc(100svh + ${N * 70}svh)` }}>
-        <div ref={stageRef} className="radar-stage sticky top-0 h-[100svh] overflow-hidden" onKeyDown={onKey}>
-          <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
-          <div className="radar-scan" aria-hidden="true" />
-
-          {/* the preview beside a hovered post */}
-          <div ref={peekRef} className={`radar-peek ${pc ? "is-on" : ""}`} aria-hidden="true">
-            {pc && (
-              <>
-                <div className="radar-peek-fig">
-                  {stillOf(pc.figure) && <Image src={stillOf(pc.figure)!} alt="" fill sizes="200px" className="object-cover" />}
-                </div>
-                <b>
-                  {pad(peek)}&nbsp; {pc.name}
-                </b>
-                <span className={pc.tracks.includes("AI") ? "text-ai" : "text-growth"}>{pc.resultIsMetric ? pc.result : pc.kind}</span>
-              </>
-            )}
+      {/* pinned while the book turns: one screen of scroll per page */}
+      <div ref={pinRef} className="relative" style={{ height: `calc(100svh + ${STATES - 1} * 100svh)` }}>
+        <div
+          className="mg-stage sticky top-0 h-[100svh] overflow-hidden"
+          role="region"
+          aria-roledescription="magazine"
+          aria-label="Selected work. Scroll, or use the arrow keys, to turn the pages."
+          tabIndex={0}
+          onKeyDown={onKey}
+        >
+          <div
+            ref={bookRef}
+            key={single ? "one" : "spread"}
+            className={`mg-book ${single ? "is-single" : ""}`}
+            style={single ? undefined : { transform: "translate3d(-25%,0,0)" }}
+          >
+            <i className="mg-floor l" />
+            <i className="mg-floor r" />
+            <i className="mg-edge l" />
+            <i className="mg-edge r" />
+            <div className="mg-base is-hidden" style={{ zIndex: 1 }}>
+              {backBoard}
+            </div>
+            {leaves}
+            <i className="mg-cast l" />
+            <i className="mg-cast r" />
+            <i className="mg-spine" />
           </div>
-
-          <nav className="radar-chips radar-mono" aria-label="Case studies">
-            {caseStudies.map((cs, i) => (
-              <button key={cs.id} type="button" onClick={() => go(i)} aria-label={cs.name} aria-current={i === active ? "true" : undefined} className="cursor-target">
-                {pad(i)}
-              </button>
-            ))}
-          </nav>
-
-          {/* the readout */}
-          <aside ref={hudRef} className={`radar-hud ${booted ? "is-on" : ""}`} aria-live="polite" aria-label="Selected case">
-            <div className="radar-mono flex items-center justify-between text-[11px] tracking-[0.14em] text-ai uppercase">
-              <span>{locked ? "◉ Locked" : "◌ Acquiring"}</span>
-              <span className="flex gap-2">
-                <Tags tracks={c.tracks} />
-              </span>
-            </div>
-            <p className="radar-tgt radar-mono">
-              TGT <b>{pad(active)}</b> &nbsp;·&nbsp; BRG <Readout value={String(blip.bearing).padStart(3, "0")} settled={locked} />° &nbsp;·&nbsp; RNG{" "}
-              <Readout value={blip.range.toFixed(2)} settled={locked} />
-            </p>
-            <h3 className="mt-3 font-display text-[clamp(1.6rem,2.3vw,2.35rem)] leading-[0.95] tracking-[-0.03em] uppercase">
-              <DecodeText text={c.name} />
-            </h3>
-            <p className="mt-1.5 text-sm text-muted">{c.kind}</p>
-
-            {/* the panel draws its own figure in behind a scan line; after a moment the live one takes over */}
-            <div className="radar-fig mt-4" aria-hidden="true">
-              {caseStudies.map((cs, i) => {
-                const still = stillOf(cs.figure);
-                return still ? (
-                  <Image key={cs.id} src={still} alt="" fill sizes="(min-width: 768px) 470px, 92vw" className={`object-cover ${i === active ? "is-on" : ""}`} />
-                ) : null;
-              })}
-              {live && c.figure && (
-                <iframe
-                  key={c.id}
-                  src={c.figure}
-                  title={`${c.name}, animated`}
-                  tabIndex={-1}
-                  className={liveReady === c.id ? "is-on" : ""}
-                  onLoad={() => window.setTimeout(() => setLiveReady(c.id), 250)}
-                />
-              )}
-              <i key={`scan-${c.id}`} className="radar-scanline" />
-            </div>
-
-            <p className="mt-4 font-mono text-[11px] tracking-widest text-faint uppercase">Result</p>
-            <p
-              className={`mt-1 ${
-                c.resultIsMetric
-                  ? `font-display text-[clamp(1.25rem,1.7vw,1.7rem)] leading-tight tracking-tight uppercase ${isAI ? "text-ai" : "text-growth"}`
-                  : "text-[15px] leading-snug text-text"
-              }`}
-            >
-              <CountUp text={c.result} run={locked} />
-            </p>
-            <p className="mt-2 hidden text-sm leading-relaxed text-muted sm:block">{c.problem}</p>
-
-            <div className="mt-5 flex items-center gap-3">
-              <a href={`/work/${c.id}`} className="btn btn-primary cursor-target">
-                <Roll text="Read the case study" />
-                <Chip />
-              </a>
-              <div className="ml-auto flex gap-2">
-                <button type="button" className="radar-step cursor-target" onClick={() => go(active - 1)} disabled={active === 0} aria-label="Previous case">
-                  <Ico dir="w" />
-                </button>
-                <button type="button" className="radar-step cursor-target" onClick={() => go(active + 1)} disabled={active === N - 1} aria-label="Next case">
-                  <Ico dir="e" />
-                </button>
-              </div>
-            </div>
-          </aside>
+          <p ref={statusRef} className="sr-only" aria-live="polite" />
         </div>
       </div>
     </section>

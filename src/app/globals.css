@@ -1323,269 +1323,550 @@ html.liquid-cursor :is(input, textarea, [contenteditable="true"]) {
 
 }
 
-/* ------------------------------------------------------------ Selected work: the radar */
-/* The table is drawn on a canvas (components/radar/radar.ts); these are the readout beside it,
-   the preview card, the case numbers and the scanlines over the whole stage. */
+/* ------------------------------------------------------------ Selected work: the magazine */
+/* A printed magazine turned by the scroll (components/Work.tsx). Each leaf carries two pages,
+   front and back; the book rotates leaves about the spine and draws only what you can see. */
 @layer components {
-  .radar-stage {
+  .mg-stage {
+    --paper: #0c0d10;
+    --paper-2: #111216;
+    --fold: 0.42;
+    --gutter: 0.5;
     touch-action: pan-y;
   }
-  .radar-mono {
+  :root[data-theme="light"] .mg-stage {
+    --paper: #ecebe7;
+    --paper-2: #e4e3de;
+    --fold: 0.14;
+    --gutter: 0.16;
+  }
+  .mg-stage:focus-visible {
+    outline: 1px solid var(--line-strong);
+    outline-offset: -8px;
+  }
+  .mg-mono {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
   }
-  .radar-scan {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgb(120 150 255 / 0.025) 0 1px, transparent 1px 3px);
+  .mg-micro {
+    font-family: var(--font-syne), sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
   }
 
-  .radar-hud {
+  /* the book: an open spread, or (closed) its cover centred */
+  .mg-book {
+    --w: min(87vw, 1440px);
     position: absolute;
-    top: 50%;
-    right: 4vw;
-    z-index: 3;
-    width: min(34vw, 470px);
-    padding: 20px 22px 22px;
-    border: 1px solid color-mix(in srgb, var(--ai) 38%, transparent);
-    border-radius: 18px;
-    background: linear-gradient(180deg, rgb(6 12 32 / 0.9), rgb(0 0 0 / 0.9));
-    box-shadow: 0 0 60px rgb(1 70 249 / 0.18);
+    top: 12svh;
+    bottom: 9svh;
+    left: 50%;
+    width: var(--w);
+    margin-left: calc(var(--w) / -2);
+    perspective: 2800px;
+    cursor: pointer;
+    will-change: transform;
+  }
+  .mg-floor {
+    position: absolute;
+    bottom: -26px;
+    width: 48%;
+    height: 50px;
+    background: radial-gradient(closest-side, rgb(0 0 0 / 0.7), transparent);
+  }
+  :root[data-theme="light"] .mg-floor {
+    background: radial-gradient(closest-side, rgb(0 0 0 / 0.25), transparent);
+  }
+  .mg-floor.l {
+    left: 1%;
     opacity: 0;
-    transform: translate(28px, -50%);
-    transition:
-      opacity 0.3s,
-      transform 0.45s cubic-bezier(0.2, 0.9, 0.1, 1);
   }
-  .radar-hud.is-on {
-    opacity: 1;
-    transform: translate(0, -50%);
+  .mg-floor.r {
+    right: 1%;
   }
-  :root[data-theme="light"] .radar-hud {
-    background: linear-gradient(180deg, rgb(238 240 246 / 0.94), rgb(224 226 232 / 0.94));
-    box-shadow: 0 0 40px rgb(1 70 249 / 0.12);
+  /* the edges of the pages under the spread: thicker on whichever side holds more of them */
+  .mg-edge {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: 0;
+    background: repeating-linear-gradient(90deg, var(--paper-2) 0 1px, var(--line-strong) 1px 2px);
   }
-  .radar-tgt {
-    margin-top: 8px;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    color: var(--muted);
+  .mg-edge.l {
+    right: 100%;
+    border-radius: 4px 0 0 4px;
   }
-  .radar-tgt b {
-    font-weight: 500;
+  .mg-edge.r {
+    left: 100%;
+    border-radius: 0 4px 4px 0;
+  }
+  .mg-leaf,
+  .mg-base {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 50%;
+  }
+  .mg-leaf {
+    transform-origin: 0 50%;
+    transform-style: preserve-3d;
+  }
+  .mg-leaf.is-hidden,
+  .mg-base.is-hidden {
+    visibility: hidden;
+  }
+  .mg-base,
+  .mg-face {
+    overflow: hidden;
+    border-radius: 0 10px 10px 0;
+  }
+  .mg-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .mg-back {
+    transform: rotateY(180deg);
+    border-radius: 10px 0 0 10px;
+  }
+  .mg-shade,
+  .mg-gloss {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .mg-shade {
+    background: #000;
+  }
+  .mg-gloss {
+    background: linear-gradient(90deg, transparent 8%, rgb(255 255 255 / 0.1) 46%, transparent 82%);
+  }
+  .mg-cast {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 150;
+    width: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .mg-cast.l {
+    left: 0;
+    border-radius: 10px 0 0 10px;
+    background: linear-gradient(270deg, rgb(0 0 0 / 0.55), transparent 75%);
+  }
+  .mg-cast.r {
+    left: 50%;
+    border-radius: 0 10px 10px 0;
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.55), transparent 75%);
+  }
+  .mg-spine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    z-index: 140;
+    width: 70px;
+    margin-left: -35px;
+    opacity: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(0 0 0 / calc(var(--fold) * 0.65)) 44%,
+      rgb(0 0 0 / var(--fold)) 50%,
+      rgb(0 0 0 / calc(var(--fold) * 0.65)) 56%,
+      transparent
+    );
+  }
+
+  /* ---- pages ---- */
+  .mg-pg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 3.2svh 2.8vw;
+    background: linear-gradient(var(--paper), var(--paper-2));
+    color: var(--text);
+    cursor: auto;
+  }
+  .mg-l {
+    box-shadow: inset -60px 0 70px -50px rgb(0 0 0 / var(--gutter));
+  }
+  .mg-r {
+    box-shadow: inset 60px 0 70px -50px rgb(0 0 0 / var(--gutter));
+  }
+  .mg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .mg-head {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mg-foot {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .mg-l .mg-foot {
+    margin-top: 3svh;
+  }
+  .mg-foot b {
+    font-weight: 400;
     color: var(--text);
   }
 
-  /* the figure: every still is stacked and the case's own scans in; the live page fades in over it */
-  .radar-fig {
+  /* the cover */
+  .mg-cv {
+    background: linear-gradient(165deg, var(--paper-2), var(--paper) 60%);
+  }
+  .mg-mast {
+    margin-top: 2.2svh;
+    font-family: var(--font-syne), sans-serif;
+    font-size: clamp(42px, 5.2vw, 90px);
+    font-weight: 500;
+    line-height: 0.84;
+    letter-spacing: -0.055em;
+    text-transform: uppercase;
+  }
+  .mg-mast span {
+    display: block;
+    color: transparent;
+    -webkit-text-stroke: 1.2px var(--text);
+  }
+  .mg-mosaic {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 2.4svh;
+  }
+  .mg-mosaic figure {
     position: relative;
-    /* full width: a capped height crops the figure a little rather than narrowing the box */
-    width: 100%;
     aspect-ratio: 16 / 10;
-    max-height: 30svh;
     overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    border-radius: 5px;
     background: #000;
   }
-  .radar-fig img {
-    opacity: 0;
+  .mg-mosaic span {
+    position: absolute;
+    top: 5px;
+    left: 6px;
+    font-size: 9px;
+    color: rgb(255 255 255 / 0.75);
   }
-  .radar-fig img.is-on {
-    opacity: 1;
-    animation: radar-scan-in 0.52s cubic-bezier(0.3, 0.7, 0.2, 1) 0.14s both;
+  .mg-lines {
+    display: grid;
+    gap: 7px;
+    margin-top: 2.2svh;
+    list-style: none;
   }
-  .radar-fig iframe {
+  .mg-lines li {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .mg-lines b {
+    flex: none;
+    min-width: 7.5em;
+    font-family: var(--font-syne), sans-serif;
+    font-size: clamp(14px, 1.25vw, 20px);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+  .mg-lines b:not(.text-ai) {
+    color: var(--text);
+  }
+
+  /* a case: the story on the left page */
+  .mg-num {
+    position: absolute;
+    top: calc(3.2svh + 40px);
+    right: 2.8vw;
+    font-family: var(--font-syne), sans-serif;
+    font-size: clamp(60px, 7vw, 124px);
+    line-height: 0.8;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--line-strong);
+  }
+  .mg-name {
+    max-width: 76%;
+    margin-top: 8svh;
+    font-family: var(--font-syne), sans-serif;
+    font-size: clamp(26px, 2.7vw, 46px);
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+  .mg-kind {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .mg-pull {
+    margin-top: auto;
+    padding: 2px 0 4px 18px;
+    border-left: 2px solid var(--growth);
+  }
+  .mg-pull.is-ai {
+    border-color: var(--ai);
+  }
+  .mg-res {
+    margin-top: 8px;
+    font-family: var(--font-syne), sans-serif;
+    font-size: clamp(24px, 2.4vw, 40px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+  /* a result that's a sentence rather than a number */
+  .mg-res.is-text {
+    max-width: 26em;
+    font-family: var(--font-geist-sans), sans-serif;
+    font-size: clamp(17px, 1.45vw, 23px);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+  .mg-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2vw;
+    margin-top: auto;
+  }
+  .mg-cols p:not(.mg-micro) {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+    opacity: 0.85;
+  }
+  .mg-drop::first-letter {
+    float: left;
+    margin: 5px 8px 0 0;
+    font-family: var(--font-syne), sans-serif;
+    font-size: 3.3em;
+    line-height: 0.78;
+    color: var(--ai);
+  }
+
+  /* and its figure on the right */
+  .mg-plate {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    margin-top: 2.6svh;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #000;
+  }
+  .mg-live {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     border: 0;
-    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.5s;
+    pointer-events: none;
+    transition: opacity 0.6s;
   }
-  .radar-fig iframe.is-on {
+  .mg-live.is-on {
     opacity: 1;
   }
-  .radar-scanline {
+  .mg-badge {
     position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 2;
-    height: 2px;
-    background: #7f9cff;
-    box-shadow: 0 0 14px 3px var(--ai);
-    pointer-events: none;
-    animation: radar-scanline 0.52s cubic-bezier(0.3, 0.7, 0.2, 1) 0.14s both;
-  }
-  @keyframes radar-scan-in {
-    from {
-      clip-path: inset(0 0 100% 0);
-    }
-    to {
-      clip-path: inset(0 0 0 0);
-    }
-  }
-  @keyframes radar-scanline {
-    0% {
-      top: 0;
-      opacity: 1;
-    }
-    95% {
-      top: 100%;
-      opacity: 1;
-    }
-    100% {
-      top: 100%;
-      opacity: 0;
-    }
-  }
-
-  /* the preview card: placed by the radar each frame (transform), popped in with `scale` */
-  .radar-peek {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 4;
-    width: 200px;
-    padding: 8px;
-    border: 1px solid rgb(58 109 255 / 0.45);
-    border-radius: 12px;
-    background: rgb(4 8 20 / 0.94);
-    box-shadow:
-      0 12px 40px rgb(0 0 0 / 0.6),
-      0 0 30px rgb(1 70 249 / 0.25);
-    pointer-events: none;
-    opacity: 0;
-    scale: 0.92;
-    transform-origin: 0 100%;
-    transition:
-      opacity 0.18s,
-      scale 0.25s cubic-bezier(0.2, 0.9, 0.1, 1);
-  }
-  .radar-peek.is-on {
-    opacity: 1;
-    scale: 1;
-  }
-  :root[data-theme="light"] .radar-peek {
-    background: rgb(238 240 246 / 0.97);
-    box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
-  }
-  .radar-peek-fig {
-    position: relative;
-    aspect-ratio: 16 / 10;
-    overflow: hidden;
-    border-radius: 7px;
-    background: #000;
-  }
-  .radar-peek b {
-    display: block;
-    margin-top: 8px;
-    font-family: var(--font-syne), sans-serif;
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--text);
-    text-transform: uppercase;
-  }
-  .radar-peek span {
-    display: block;
-    margin-top: 3px;
-    font-family: var(--font-syne), sans-serif;
-    font-size: 11.5px;
-    line-height: 1.2;
-    text-transform: uppercase;
-  }
-
-  /* the case numbers under the table */
-  .radar-chips {
-    position: absolute;
-    bottom: 6svh;
-    left: 4vw;
-    z-index: 3;
+    top: 10px;
+    left: 10px;
     display: flex;
+    align-items: center;
     gap: 6px;
+    padding: 4px 9px;
+    border-radius: 99px;
+    background: rgb(0 0 0 / 0.62);
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #e8e8e8;
+    opacity: 0;
+    transition: opacity 0.4s;
   }
-  .radar-chips button {
-    padding: 7px 11px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--bg) 55%, transparent);
+  .mg-badge i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7f9cff;
+    box-shadow: 0 0 8px #7f9cff;
+    animation: mg-pulse 1.6s ease-in-out infinite;
+  }
+  .mg-live.is-on + .mg-badge {
+    opacity: 1;
+  }
+  @keyframes mg-pulse {
+    50% {
+      opacity: 0.3;
+    }
+  }
+  .mg-cap {
+    margin-top: 9px;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+  }
+  .mg-spec {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: baseline;
+    gap: 9px 14px;
+    margin-top: 2.6svh;
+    font-size: 13px;
+  }
+  .mg-spec dt {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .mg-spec dd {
+    color: var(--muted);
+  }
+  .mg-act {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: auto;
+    padding-top: 2svh;
+  }
+  .mg-act + .mg-foot {
+    margin-top: 2svh;
+  }
+  .mg-cta {
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--line-strong);
+    font-size: 13px;
+    color: var(--text);
+    transition: border-color 0.3s;
+  }
+  .mg-cta:hover,
+  .mg-cta:focus-visible {
+    border-color: var(--ai);
+  }
+  .mg-turn {
     font-size: 10.5px;
     letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
     color: var(--faint);
-    transition:
-      color 0.2s,
-      border-color 0.2s;
-  }
-  .radar-chips button:hover,
-  .radar-chips button:focus-visible {
-    border-color: var(--line-strong);
-    color: var(--text);
-  }
-  .radar-chips button[aria-current="true"] {
-    border-color: var(--ai);
-    color: var(--text);
   }
 
-  /* previous / next: the arrow shoots out and a new one slides in, as on the buttons */
-  .radar-step {
-    display: grid;
-    place-items: center;
-    width: 2.4rem;
-    height: 2.4rem;
-    border: 1px solid var(--line-strong);
-    border-radius: 50%;
-    color: var(--text);
-    transition: border-color 0.2s;
+  /* ---- the one-page book (phones, portrait screens): pages turn about their left edge ---- */
+  .mg-book.is-single {
+    --w: min(92vw, 560px);
+    top: 11svh;
+    bottom: 3.5svh;
   }
-  .radar-step:disabled {
-    opacity: 0.35;
+  .is-single .mg-leaf,
+  .is-single .mg-base {
+    left: 0;
+    width: 100%;
   }
-  .radar-step:not(:disabled):is(:hover, :focus-visible) {
-    border-color: var(--ai);
+  .is-single .mg-base,
+  .is-single .mg-face {
+    border-radius: 10px;
   }
-  .radar-step:not(:disabled):is(:hover, :focus-visible) .btn-ico > svg:first-child {
-    transform: translate(calc(var(--dx) * 140%), calc(var(--dy) * 140%));
+  .is-single .mg-cast.r {
+    left: 0;
+    width: 100%;
+    border-radius: 10px;
   }
-  .radar-step:not(:disabled):is(:hover, :focus-visible) .btn-ico > svg:last-child {
-    transform: none;
+  .is-single .mg-spine,
+  .is-single .mg-edge.l,
+  .is-single .mg-cast.l,
+  .is-single .mg-floor.l {
+    display: none;
   }
-
-  /* phones: the table across the top, the readout as a sheet below it, no number row */
-  @media (max-width: 767px) {
-    .radar-hud {
-      top: auto;
-      right: 12px;
-      bottom: 12px;
-      left: 12px;
-      width: auto;
-      max-height: 60svh;
-      padding: 16px;
-      overflow: hidden;
-      transform: translateY(24px);
-    }
-    .radar-hud.is-on {
-      transform: none;
-    }
-    .radar-fig {
-      max-height: 19svh;
-    }
-    .radar-chips {
-      display: none;
-    }
+  .is-single .mg-floor.r {
+    right: 4%;
+    width: 92%;
+  }
+  .is-single .mg-pg {
+    padding: 2.2svh 18px 2svh;
+  }
+  .mg-one .mg-name {
+    max-width: none;
+    margin-top: 2.2svh;
+    font-size: clamp(24px, 7.2vw, 36px);
+  }
+  .mg-one .mg-kind {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+  .mg-one .mg-plate {
+    margin-top: 1.8svh;
+  }
+  .mg-one .mg-pull {
+    margin-top: 2svh;
+  }
+  .mg-one .mg-res {
+    font-size: clamp(18px, 5.2vw, 26px);
+  }
+  .mg-one .mg-res.is-text {
+    font-size: 15px;
+  }
+  .mg-one .mg-cols {
+    grid-template-columns: 1fr;
+    gap: 1.2svh;
+    margin-top: 2svh;
+  }
+  .mg-one .mg-cols p:not(.mg-micro) {
+    margin-top: 4px;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .mg-one .mg-act {
+    padding-top: 1.4svh;
+  }
+  .is-single .mg-cv .mg-mast {
+    font-size: clamp(40px, 13vw, 76px);
+  }
+  .is-single .mg-lines b {
+    font-size: 16px;
+  }
+  .mg-paper {
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .radar-hud {
-      transition: none;
-    }
-    .radar-fig img.is-on {
+    .mg-badge i {
       animation: none;
     }
-    .radar-scanline {
-      display: none;
+    .mg-live {
+      transition: none;
     }
   }
 }
