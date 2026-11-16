@@ -1322,3 +1322,270 @@ html.liquid-cursor :is(input, textarea, [contenteditable="true"]) {
 }
 
 }
+
+/* ------------------------------------------------------------ Selected work: the radar */
+/* The table is drawn on a canvas (components/radar/radar.ts); these are the readout beside it,
+   the preview card, the case numbers and the scanlines over the whole stage. */
+@layer components {
+  .radar-stage {
+    touch-action: pan-y;
+  }
+  .radar-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+  }
+  .radar-scan {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgb(120 150 255 / 0.025) 0 1px, transparent 1px 3px);
+  }
+
+  .radar-hud {
+    position: absolute;
+    top: 50%;
+    right: 4vw;
+    z-index: 3;
+    width: min(34vw, 470px);
+    padding: 20px 22px 22px;
+    border: 1px solid color-mix(in srgb, var(--ai) 38%, transparent);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgb(6 12 32 / 0.9), rgb(0 0 0 / 0.9));
+    box-shadow: 0 0 60px rgb(1 70 249 / 0.18);
+    opacity: 0;
+    transform: translate(28px, -50%);
+    transition:
+      opacity 0.3s,
+      transform 0.45s cubic-bezier(0.2, 0.9, 0.1, 1);
+  }
+  .radar-hud.is-on {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+  :root[data-theme="light"] .radar-hud {
+    background: linear-gradient(180deg, rgb(238 240 246 / 0.94), rgb(224 226 232 / 0.94));
+    box-shadow: 0 0 40px rgb(1 70 249 / 0.12);
+  }
+  .radar-tgt {
+    margin-top: 8px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .radar-tgt b {
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* the figure: every still is stacked and the case's own scans in; the live page fades in over it */
+  .radar-fig {
+    position: relative;
+    /* full width: a capped height crops the figure a little rather than narrowing the box */
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    max-height: 30svh;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #000;
+  }
+  .radar-fig img {
+    opacity: 0;
+  }
+  .radar-fig img.is-on {
+    opacity: 1;
+    animation: radar-scan-in 0.52s cubic-bezier(0.3, 0.7, 0.2, 1) 0.14s both;
+  }
+  .radar-fig iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .radar-fig iframe.is-on {
+    opacity: 1;
+  }
+  .radar-scanline {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 2;
+    height: 2px;
+    background: #7f9cff;
+    box-shadow: 0 0 14px 3px var(--ai);
+    pointer-events: none;
+    animation: radar-scanline 0.52s cubic-bezier(0.3, 0.7, 0.2, 1) 0.14s both;
+  }
+  @keyframes radar-scan-in {
+    from {
+      clip-path: inset(0 0 100% 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes radar-scanline {
+    0% {
+      top: 0;
+      opacity: 1;
+    }
+    95% {
+      top: 100%;
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
+  }
+
+  /* the preview card: placed by the radar each frame (transform), popped in with `scale` */
+  .radar-peek {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 4;
+    width: 200px;
+    padding: 8px;
+    border: 1px solid rgb(58 109 255 / 0.45);
+    border-radius: 12px;
+    background: rgb(4 8 20 / 0.94);
+    box-shadow:
+      0 12px 40px rgb(0 0 0 / 0.6),
+      0 0 30px rgb(1 70 249 / 0.25);
+    pointer-events: none;
+    opacity: 0;
+    scale: 0.92;
+    transform-origin: 0 100%;
+    transition:
+      opacity 0.18s,
+      scale 0.25s cubic-bezier(0.2, 0.9, 0.1, 1);
+  }
+  .radar-peek.is-on {
+    opacity: 1;
+    scale: 1;
+  }
+  :root[data-theme="light"] .radar-peek {
+    background: rgb(238 240 246 / 0.97);
+    box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+  }
+  .radar-peek-fig {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: 7px;
+    background: #000;
+  }
+  .radar-peek b {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--font-syne), sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .radar-peek span {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--font-syne), sans-serif;
+    font-size: 11.5px;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  /* the case numbers under the table */
+  .radar-chips {
+    position: absolute;
+    bottom: 6svh;
+    left: 4vw;
+    z-index: 3;
+    display: flex;
+    gap: 6px;
+  }
+  .radar-chips button {
+    padding: 7px 11px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    color: var(--faint);
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+  .radar-chips button:hover,
+  .radar-chips button:focus-visible {
+    border-color: var(--line-strong);
+    color: var(--text);
+  }
+  .radar-chips button[aria-current="true"] {
+    border-color: var(--ai);
+    color: var(--text);
+  }
+
+  /* previous / next: the arrow shoots out and a new one slides in, as on the buttons */
+  .radar-step {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+  .radar-step:disabled {
+    opacity: 0.35;
+  }
+  .radar-step:not(:disabled):is(:hover, :focus-visible) {
+    border-color: var(--ai);
+  }
+  .radar-step:not(:disabled):is(:hover, :focus-visible) .btn-ico > svg:first-child {
+    transform: translate(calc(var(--dx) * 140%), calc(var(--dy) * 140%));
+  }
+  .radar-step:not(:disabled):is(:hover, :focus-visible) .btn-ico > svg:last-child {
+    transform: none;
+  }
+
+  /* phones: the table across the top, the readout as a sheet below it, no number row */
+  @media (max-width: 767px) {
+    .radar-hud {
+      top: auto;
+      right: 12px;
+      bottom: 12px;
+      left: 12px;
+      width: auto;
+      max-height: 60svh;
+      padding: 16px;
+      overflow: hidden;
+      transform: translateY(24px);
+    }
+    .radar-hud.is-on {
+      transform: none;
+    }
+    .radar-fig {
+      max-height: 19svh;
+    }
+    .radar-chips {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .radar-hud {
+      transition: none;
+    }
+    .radar-fig img.is-on {
+      animation: none;
+    }
+    .radar-scanline {
+      display: none;
+    }
+  }
+}
