@@ -874,6 +874,20 @@ export default function ChromeScene() {
           chapterNo: el.dataset.chapterNo ?? (el.closest("section") as HTMLElement | null)?.dataset.chapterNo ?? "",
         };
       });
+      // A cut into a new section ends with that section framed: its top at the top of the screen (one
+      // shorter than the screen sits centred), so the title card parts on the section's content rather
+      // than on an empty band above it, whatever the section's first stop is.
+      const maxY = Math.max(0, document.documentElement.scrollHeight - vh);
+      for (let i = 1; i < stops.length; i++) {
+        const s = stops[i];
+        const p = stops[i - 1];
+        if (!s.sec || s.sec === p.sec) continue;
+        const r = s.sec.getBoundingClientRect();
+        const top = r.top + window.scrollY;
+        const land = r.height < vh ? top - (vh - r.height) / 2 : top;
+        s.start = Math.min(Math.max(land, p.end + 1), maxY - 1);
+        s.end = Math.max(s.start, s.end);
+      }
       if (stops.length) stops[0].start = -Infinity;
       else stops = [{ el: null, sec: null, shape: HERO, frame: FRAMES.center, start: -Infinity, end: Infinity, chapter: "", chapterNo: "" }];
       film.sections = [...new Set(stops.map((s) => s.sec).filter((s): s is HTMLElement => !!s))];
