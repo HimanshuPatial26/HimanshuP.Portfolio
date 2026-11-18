@@ -6,6 +6,7 @@ import { Chip, Ring, Roll } from "@/components/Buttons";
 import LoopVideo from "@/components/projects/LoopVideo";
 import ProjectChapters from "@/components/projects/ProjectChapters";
 import ProjectHero from "@/components/projects/ProjectHero";
+import CallEvalsPipeline from "@/components/projects/CallEvalsPipeline";
 import { builtProjects, projectBySlug } from "@/data/projects";
 
 // One film-led page per built project. Facts come from the project's own repo and films.
@@ -39,13 +40,57 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
   if (!p) notFound();
   const index = builtProjects.indexOf(p);
   const next = builtProjects[(index + 1) % builtProjects.length];
+  const style = { "--p-acc": p.accent.dark, "--p-acc-l": p.accent.light, "--p-rgb": p.accent.rgb } as CSSProperties;
+
+  const nextSection = (
+    <>
+      {/* next project: its clip grows into its page, the same way this one did */}
+      <section className="relative border-t border-line">
+        <Link
+          href={`/projects/${next.slug}`}
+          className="cursor-target group mx-auto grid max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_minmax(0,0.85fr)] md:py-28"
+          style={{ "--n-acc": next.accent.dark } as CSSProperties}
+        >
+          <span>
+            <span className="font-mono text-[11px] tracking-[0.16em] text-faint uppercase">Next project</span>
+            <span className="mt-4 block font-display text-[clamp(3rem,8vw,7rem)] leading-[0.88] tracking-[-0.04em] transition-colors duration-500 group-hover:text-[var(--n-acc)]">
+              {next.name} <span aria-hidden="true">→</span>
+            </span>
+            <span className="mt-4 block text-muted">{next.tagline}</span>
+          </span>
+          <ViewTransition name={`film-${next.slug}`} share="morph" default="none">
+            <span className="relative block aspect-[16/10] overflow-hidden rounded-[22px] border border-white/12 bg-[#0b0b0b] transition-transform duration-700 group-hover:scale-[1.02]">
+              <LoopVideo src={next.video.loop} webm={next.video.loopWebm} poster={next.video.loopPoster} className="absolute inset-0 size-full object-cover" />
+            </span>
+          </ViewTransition>
+        </Link>
+        <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/#projects" className="link-roll cursor-target">
+            <Ring dir="w" />
+            <Roll text="All projects" />
+          </a>
+        </div>
+      </section>
+    </>
+  );
+
+  // CallEvals tells its story as a pipeline on a dotted page; the other built projects keep the film-led template
+  if (p.slug === "callevals") {
+    return (
+      <article data-shape="none" data-project={p.slug} className="project-page cp-page relative isolate" style={style}>
+        <CallEvalsPipeline p={p} index={index} total={builtProjects.length} />
+        {nextSection}
+      </article>
+    );
+  }
 
   return (
     <article
       data-shape="none"
       data-project={p.slug}
       className="project-page relative isolate"
-      style={{ "--p-acc": p.accent.dark, "--p-acc-l": p.accent.light, "--p-rgb": p.accent.rgb } as CSSProperties}
+      style={style}
     >
       {/* the room takes on the product's colour (and, on Med-pedia's safety chapter, the tone's) */}
       <div aria-hidden="true" className="project-ambient">
@@ -96,34 +141,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
 
       <ProjectChapters p={p} />
 
-      {/* next project: its clip grows into its page, the same way this one did */}
-      <section className="relative border-t border-line">
-        <Link
-          href={`/projects/${next.slug}`}
-          className="cursor-target group mx-auto grid max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-[1fr_minmax(0,0.85fr)] md:py-28"
-          style={{ "--n-acc": next.accent.dark } as CSSProperties}
-        >
-          <span>
-            <span className="font-mono text-[11px] tracking-[0.16em] text-faint uppercase">Next project</span>
-            <span className="mt-4 block font-display text-[clamp(3rem,8vw,7rem)] leading-[0.88] tracking-[-0.04em] transition-colors duration-500 group-hover:text-[var(--n-acc)]">
-              {next.name} <span aria-hidden="true">→</span>
-            </span>
-            <span className="mt-4 block text-muted">{next.tagline}</span>
-          </span>
-          <ViewTransition name={`film-${next.slug}`} share="morph" default="none">
-            <span className="relative block aspect-[16/10] overflow-hidden rounded-[22px] border border-white/12 bg-[#0b0b0b] transition-transform duration-700 group-hover:scale-[1.02]">
-              <LoopVideo src={next.video.loop} webm={next.video.loopWebm} poster={next.video.loopPoster} className="absolute inset-0 size-full object-cover" />
-            </span>
-          </ViewTransition>
-        </Link>
-        <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/#projects" className="link-roll cursor-target">
-            <Ring dir="w" />
-            <Roll text="All projects" />
-          </a>
-        </div>
-      </section>
+      {nextSection}
     </article>
   );
 }

@@ -8,12 +8,14 @@ import Seg from "@/components/Seg";
  * before and after one prompt rule. Recall was 100% in both runs; the PRD's launch gate is 85%
  * next-step precision.
  */
+export const EVAL_ROWS: { label: string; r1: number; r2: number; gate?: number }[] = [
+  { label: "Next steps", r1: 75, r2: 100, gate: 85 },
+  { label: "Objections", r1: 50, r2: 75 },
+];
+
 export function EvalToggle() {
   const [run, setRun] = useState<1 | 2>(2);
-  const rows = [
-    { label: "Next steps", r1: 75, r2: 100, gate: 85 },
-    { label: "Objections", r1: 50, r2: 75 },
-  ];
+  const rows = EVAL_ROWS;
   return (
     <div className="glass mt-8 rounded-2xl p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
