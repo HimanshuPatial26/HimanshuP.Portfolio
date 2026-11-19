@@ -261,6 +261,41 @@ body {
   animation: rise-in 1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* ------------------------------------------------------------------ background: spotlight dots (SpotlightDots.tsx) */
+/* a faint 22px dot grid (the project pages' grid) whose dots light up blue under the pointer */
+.spot-dots {
+  background-image: radial-gradient(circle, rgb(255 255 255 / 0.09) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+}
+:root[data-theme="light"] .spot-dots {
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.12) 1px, transparent 1.5px);
+}
+.spot-win {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 480px;
+  height: 480px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  will-change: transform;
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, rgb(0 0 0 / 0.45) 45%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 0%, rgb(0 0 0 / 0.45) 45%, transparent 100%);
+}
+.spot-hot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100lvh;
+  background-image: radial-gradient(circle, var(--ai) 1.6px, transparent 2.1px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+  will-change: transform;
+}
+
 /* ------------------------------------------------------------------ film finish */
 .film-vignette {
   background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 45%, var(--vignette) 100%);

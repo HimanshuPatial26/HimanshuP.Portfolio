@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Syne } from "next/font/google";
 import SceneMount from "@/components/scene/SceneMount";
+import SpotlightDots from "@/components/SpotlightDots";
 import Opening from "@/components/Opening";
 import FilmOverlay from "@/components/FilmOverlay";
 import SoundToggle from "@/components/SoundToggle";
@@ -66,6 +67,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <SceneMount />
+        {/* the dot grid that lights up under the pointer: over the 3D scene, under the horizon (FilmOverlay) and the content */}
+        <SpotlightDots />
         <Opening />
         <FilmOverlay />
         <SmoothScroll />
