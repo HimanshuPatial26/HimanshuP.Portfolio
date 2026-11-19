@@ -706,6 +706,71 @@ body {
   }
 }
 
+/* GitHub button: a dark circle with the GitHub mark that opens into a labelled pill on hover or keyboard focus.
+   Uiverse.io-format button supplied by Himanshu (no author named in the paste); the projects' Code links */
+.gh-btn {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: rgb(31 31 31);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.16); /* keeps the dark circle visible on the dark pages */
+  transition-property: width, border-radius;
+  transition-duration: 0.4s;
+  -webkit-tap-highlight-color: transparent;
+}
+:root[data-theme="light"] .gh-btn {
+  box-shadow: none;
+}
+.gh-btn-icon {
+  height: 1.4em;
+  width: auto;
+  transition: opacity 0.3s;
+}
+.gh-btn-icon path {
+  fill: #ffffff;
+}
+.gh-btn-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.gh-btn:hover,
+.gh-btn:focus-visible {
+  width: 110px;
+  border-radius: 30px;
+}
+.gh-btn:hover .gh-btn-text,
+.gh-btn:focus-visible .gh-btn-text {
+  opacity: 1;
+}
+.gh-btn:hover .gh-btn-icon,
+.gh-btn:focus-visible .gh-btn-icon {
+  opacity: 0;
+}
+.gh-btn:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gh-btn,
+  .gh-btn-icon,
+  .gh-btn-text {
+    transition-duration: 0s;
+  }
+}
+
 /* Tooltips under the header buttons (mouse only) */
 .tip::after {
   content: attr(data-tip);

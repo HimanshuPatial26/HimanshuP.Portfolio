@@ -166,10 +166,10 @@ export const builtProjects: BuiltProject[] = [
     status: "Built",
     tags: ["RAG", "2 models", "Safety"],
     accent: { dark: "#8fa2ff", light: "#3e56d6", rgb: "143 162 255" },
-    // the live app is the Vercel project "ai-agent"; the PRD's link comes later (an empty href shows "soon")
+    // the live app is the Vercel project "ai-agent"; the PRD is a PDF in its repo (an empty href would show "soon")
     links: [
       { label: "Live app", href: "https://ai-agent-himp1.vercel.app" },
-      { label: "PRD", href: "" },
+      { label: "PRD", href: "https://github.com/HimanshuPatial26/AI-agent/blob/master/docs/PRD.pdf" },
       { label: "Code", href: "https://github.com/HimanshuPatial26/AI-agent" },
     ],
     facts: [

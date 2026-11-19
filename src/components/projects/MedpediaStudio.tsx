@@ -2,7 +2,7 @@
 
 import { Instrument_Serif, Inter_Tight } from "next/font/google";
 import { ViewTransition, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Chip, Ring, Roll } from "@/components/Buttons";
+import { Chip, GithubButton, Ring, Roll } from "@/components/Buttons";
 import { quietMedia } from "@/components/projects/LoopVideo";
 import { TONES } from "@/components/projects/Interactives";
 import type { BuiltProject } from "@/data/projects";
@@ -277,12 +277,15 @@ function Diagram({ k }: { k: "wide" | "tall" }) {
   );
 }
 
-/** the project's links as buttons (the first one solid); one without a URL yet shows as a quiet "soon" pill, not a dead link */
+/** the project's links as buttons (the first one solid, Code as the GitHub button); one without a URL yet shows as a quiet
+ *  "soon" pill, not a dead link */
 function Links({ links }: { links: BuiltProject["links"] }) {
   return (
     <>
       {links.map((l, i) =>
-        l.href ? (
+        l.href && l.label === "Code" ? (
+          <GithubButton key={l.label} href={l.href} label="AI Med-pedia code on GitHub" />
+        ) : l.href ? (
           <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className={i === 0 ? "btn btn-primary cursor-target" : "btn btn-line cursor-target"}>
             <Roll text={l.label} />
             {i === 0 && <Chip dir="ne" />}

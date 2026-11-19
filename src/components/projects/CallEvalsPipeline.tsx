@@ -1,7 +1,7 @@
 "use client";
 
 import { ViewTransition, useEffect, useRef, useState, type ReactNode } from "react";
-import { Chip, Ring, Roll } from "@/components/Buttons";
+import { Chip, GithubButton, Ring, Roll } from "@/components/Buttons";
 import { quietMedia } from "@/components/projects/LoopVideo";
 import { EVAL_ROWS, EvalToggle } from "@/components/projects/Interactives";
 import type { BuiltProject, Chapter } from "@/data/projects";
@@ -405,13 +405,17 @@ export default function CallEvalsPipeline({ p, index, total }: { p: BuiltProject
               <p className="cp-tl">
                 {p.tagline} {p.line}.
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                {p.links.map((l, i) => (
-                  <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className={i === 0 ? "btn btn-primary cursor-target" : "btn btn-line cursor-target"}>
-                    <Roll text={l.label} />
-                    {i === 0 && <Chip dir="ne" />}
-                  </a>
-                ))}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {p.links.map((l, i) =>
+                  l.label === "Code" ? (
+                    <GithubButton key={l.href} href={l.href} label={`${p.name} code on GitHub`} />
+                  ) : (
+                    <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className={i === 0 ? "btn btn-primary cursor-target" : "btn btn-line cursor-target"}>
+                      <Roll text={l.label} />
+                      {i === 0 && <Chip dir="ne" />}
+                    </a>
+                  ),
+                )}
               </div>
               <div className="cp-mini">
                 <span className="cp-pk" aria-hidden="true" />
@@ -520,13 +524,17 @@ export default function CallEvalsPipeline({ p, index, total }: { p: BuiltProject
               </li>
             ))}
           </ul>
-          <div className="flex flex-wrap gap-3">
-            {p.links.map((l, i) => (
-              <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className={i === 0 ? "btn btn-primary cursor-target" : "btn btn-line cursor-target"}>
-                <Roll text={l.label} />
-                {i === 0 && <Chip dir="ne" />}
-              </a>
-            ))}
+          <div className="flex flex-wrap items-center gap-3">
+            {p.links.map((l, i) =>
+              l.label === "Code" ? (
+                <GithubButton key={l.href} href={l.href} label={`${p.name} code on GitHub`} />
+              ) : (
+                <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className={i === 0 ? "btn btn-primary cursor-target" : "btn btn-line cursor-target"}>
+                  <Roll text={l.label} />
+                  {i === 0 && <Chip dir="ne" />}
+                </a>
+              ),
+            )}
           </div>
         </div>
       </section>
