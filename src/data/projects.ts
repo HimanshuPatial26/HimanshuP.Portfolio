@@ -166,8 +166,12 @@ export const builtProjects: BuiltProject[] = [
     status: "Built",
     tags: ["RAG", "2 models", "Safety"],
     accent: { dark: "#8fa2ff", light: "#3e56d6", rgb: "143 162 255" },
-    // the code link is added once the repo is public (it is private, so visitors would see a 404)
-    links: [],
+    // the live app is the Vercel project "ai-agent"; the PRD's link comes later (an empty href shows "soon")
+    links: [
+      { label: "Live app", href: "https://ai-agent-himp1.vercel.app" },
+      { label: "PRD", href: "" },
+      { label: "Code", href: "https://github.com/HimanshuPatial26/AI-agent" },
+    ],
     facts: [
       { label: "Reads", value: "PDFs, Word files, notes and CSVs you upload" },
       { label: "Searches", value: "The live web, and shows its sources" },

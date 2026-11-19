@@ -277,6 +277,26 @@ function Diagram({ k }: { k: "wide" | "tall" }) {
   );
 }
 
+/** the project's links as buttons (the first one solid); one without a URL yet shows as a quiet "soon" pill, not a dead link */
+function Links({ links }: { links: BuiltProject["links"] }) {
+  return (
+    <>
+      {links.map((l, i) =>
+        l.href ? (
+          <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className={i === 0 ? "btn btn-primary cursor-target" : "btn btn-line cursor-target"}>
+            <Roll text={l.label} />
+            {i === 0 && <Chip dir="ne" />}
+          </a>
+        ) : (
+          <span key={l.label} className="ms-soon" title={`${l.label}: link coming soon`}>
+            {l.label} <i>· soon</i>
+          </span>
+        ),
+      )}
+    </>
+  );
+}
+
 /** the brand film, muted and looping while it's on screen; the switch (or the hero's button) turns the sound on from the top */
 function Film({ p }: { p: BuiltProject }) {
   const vRef = useRef<HTMLVideoElement>(null);
@@ -635,10 +655,19 @@ export default function MedpediaStudio({ p, index, total }: { p: BuiltProject; i
         <div className="ms-row rise-in" style={{ animationDelay: "160ms" }}>
           <p>{p.tagline}</p>
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={watchFilm} className="btn btn-primary cursor-target">
-              <Roll text={`Watch the film · ${p.video.filmLength}`} />
-              <Chip dir="play" />
-            </button>
+            {/* the project's links (Live app first) lead; the film becomes a quieter link beside them */}
+            <Links links={p.links} />
+            {p.links.length > 0 ? (
+              <button type="button" onClick={watchFilm} className="link-roll cursor-target">
+                <Ring dir="play" />
+                <Roll text={`Watch the film · ${p.video.filmLength}`} />
+              </button>
+            ) : (
+              <button type="button" onClick={watchFilm} className="btn btn-primary cursor-target">
+                <Roll text={`Watch the film · ${p.video.filmLength}`} />
+                <Chip dir="play" />
+              </button>
+            )}
             <span className="rounded-full border border-line-strong px-2.5 py-1 font-mono text-[10.5px] tracking-[0.12em] text-muted uppercase">
               {p.status} · {p.year}
             </span>
@@ -753,11 +782,18 @@ export default function MedpediaStudio({ p, index, total }: { p: BuiltProject; i
             </div>
           ))}
         </dl>
-        <ul className="mt-8 flex flex-wrap gap-2">
-          {p.stack.map((s) => (
-            <li key={s} className="rounded-full border border-line-strong px-3 py-1 text-xs text-muted">{s}</li>
-          ))}
-        </ul>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-5">
+          <ul className="flex flex-wrap gap-2">
+            {p.stack.map((s) => (
+              <li key={s} className="rounded-full border border-line-strong px-3 py-1 text-xs text-muted">{s}</li>
+            ))}
+          </ul>
+          {p.links.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              <Links links={p.links} />
+            </div>
+          )}
+        </div>
         <p className="mt-8 font-mono text-[10.5px] tracking-[0.14em] text-faint uppercase">General health information only — not a diagnosis.</p>
       </section>
     </div>

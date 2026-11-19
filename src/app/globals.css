@@ -2751,6 +2751,9 @@ html.liquid-cursor :is(input, textarea, [contenteditable="true"]) {
 .ms-bar { position: relative; flex: 1; height: 3px; overflow: hidden; border-radius: 3px; background: rgb(255 255 255 / 0.2); }
 .ms-bar i { position: absolute; inset: 0; background: #8fa2ff; transform: scaleX(0); transform-origin: left; }
 .ms-credits { padding: 14vh max(16px, 4vw) 12vh; }
+/* a link whose URL isn't in yet: the button's shape, quiet, not clickable */
+.ms-soon { display: inline-flex; align-items: center; gap: 0.4em; height: 3.25rem; padding: 0 1.45rem; border-radius: 999px; border: 1px dashed var(--line-strong); font-family: var(--font-display); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); white-space: nowrap; cursor: default; }
+.ms-soon i { font-style: normal; opacity: 0.7; }
 /* the chapter rail (it shows once the first chapter is reached) */
 .ms-rail { position: fixed; z-index: 30; left: 14px; top: 50%; translate: 0 -50%; display: grid; gap: 12px; transition: opacity 0.4s; }
 .ms-rail:not(:has(a.on)) { opacity: 0; pointer-events: none; }
