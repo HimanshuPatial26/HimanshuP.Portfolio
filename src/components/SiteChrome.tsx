@@ -65,7 +65,7 @@ export default function SiteChrome() {
       {/* soft fade behind the fixed header so content scrolling under it stays legible */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 top-0 z-[35] h-24 bg-gradient-to-b from-bg/90 via-bg/50 to-transparent"
+        className="header-fade pointer-events-none fixed inset-x-0 top-0 z-[35] h-24 bg-gradient-to-b from-bg/90 via-bg/50 to-transparent transition-opacity duration-300"
       />
 
       <ScrollProgress />

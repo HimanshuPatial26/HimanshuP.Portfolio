@@ -7,6 +7,7 @@ import LoopVideo from "@/components/projects/LoopVideo";
 import ProjectChapters from "@/components/projects/ProjectChapters";
 import ProjectHero from "@/components/projects/ProjectHero";
 import CallEvalsPipeline from "@/components/projects/CallEvalsPipeline";
+import MedpediaStudio from "@/components/projects/MedpediaStudio";
 import { builtProjects, projectBySlug } from "@/data/projects";
 
 // One film-led page per built project. Facts come from the project's own repo and films.
@@ -80,6 +81,16 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
     return (
       <article data-shape="none" data-project={p.slug} className="project-page cp-page relative isolate" style={style}>
         <CallEvalsPipeline p={p} index={index} total={builtProjects.length} />
+        {nextSection}
+      </article>
+    );
+  }
+
+  // Med-pedia is a studio case study on a dotted page
+  if (p.slug === "ai-med-pedia") {
+    return (
+      <article data-shape="none" data-project={p.slug} className="project-page ms-page relative isolate" style={style}>
+        <MedpediaStudio p={p} index={index} total={builtProjects.length} />
         {nextSection}
       </article>
     );

@@ -62,7 +62,8 @@ export function EvalToggle() {
   );
 }
 
-const TONES = [
+/** Med-pedia's three tones (shared with its studio page) */
+export const TONES = [
   {
     id: "urgent",
     label: "Urgent",
