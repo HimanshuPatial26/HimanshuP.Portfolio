@@ -2571,7 +2571,8 @@ html.liquid-cursor :is(input, textarea, [contenteditable="true"]) {
 .ms-meta b { display: block; margin-top: 8px; font-weight: 500; font-size: 14.5px; }
 .ms-name { margin-top: 3vh; font-weight: 800; letter-spacing: -0.065em; line-height: 0.8; white-space: nowrap; font-size: 17.9cqw; /* "AI Med-pedia" measures 5.54em in Inter Tight ExtraBold */ }
 .ms-name em { font-style: normal; color: var(--ms-per); }
-.ms-row { margin-top: 4vh; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+/* the name's "p" hangs ~0.17em (≈3.1cqw) below its box, so the row clears that first, then keeps a real gap */
+.ms-row { margin-top: calc(3.2cqw + 5vh); display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
 .ms-row p { max-width: 30rem; font-size: 18px; line-height: 1.45; }
 .ms-shot { margin: 7vh max(16px, 4vw) 0; padding-top: 8vh; border-radius: 30px; overflow: hidden; background: radial-gradient(60% 80% at 20% 10%, #263170, transparent 60%), radial-gradient(60% 70% at 85% 30%, #1d2658, transparent 60%), radial-gradient(80% 90% at 50% 100%, #3b4ba8, #0e1230); }
 :root[data-theme="light"] .ms-shot { background: radial-gradient(60% 80% at 20% 10%, #c9d2ff, transparent 60%), radial-gradient(60% 70% at 85% 30%, #b7c3ff, transparent 60%), radial-gradient(80% 90% at 50% 100%, #8fa2ff, #e6e9ff); }
