@@ -785,11 +785,20 @@ html[data-opening] [data-chrome] {
 }
 .sm-scope .sm-panel-item {
   font-size: clamp(2.2rem, 8vw, 2.75rem) !important;
-  padding-right: 1em !important;
+  padding-right: 1em !important; /* room for the number after the word */
   font-family: var(--font-syne), "Helvetica Neue", Arial, sans-serif;
   font-weight: 400 !important;
   letter-spacing: -0.04em !important;
   text-transform: uppercase;
+}
+/* the number sits in that room, after the word (React Bits places it 3.2em in from the edge, which with the
+   smaller words here landed on their last letters). !important: React Bits injects its own rules after this sheet. */
+.sm-scope .sm-panel-list[data-numbering] .sm-panel-item::after {
+  top: 0.2em !important;
+  right: 0 !important;
+  font-size: 15px !important;
+  font-family: var(--font-geist-mono), monospace;
+  letter-spacing: 0.02em !important;
 }
 .sm-scope .sm-toggle {
   font-size: 0.95rem;
