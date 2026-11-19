@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { Chip, Roll } from "@/components/Buttons";
+import { Chip, LinkedInButton, Roll } from "@/components/Buttons";
 import Magnet from "@/components/reactbits/Magnet";
 import Scribble from "@/components/Scribble";
 import { toast } from "@/components/Toaster";
@@ -90,6 +90,8 @@ export default function Contact() {
           <a href={profile.resumeUrl} download className="btn btn-line cursor-target">
             <Roll text="Download resume (PDF)" />
           </a>
+          {/* the same LinkedIn button as the hero */}
+          <LinkedInButton href={profile.linkedin} />
         </div>
       </div>
     </section>

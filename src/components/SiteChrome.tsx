@@ -22,6 +22,7 @@ const menuItems = [
 
 const socialItems = [
   { label: "Email", link: `mailto:${profile.email}` },
+  { label: "LinkedIn", link: profile.linkedin },
   { label: "Resume (PDF)", link: profile.resumeUrl },
 ];
 
